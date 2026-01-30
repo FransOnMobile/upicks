@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Maroon Theme Palette */
+    /* Primary: Deep Maroon */
+    --primary: 348 83% 32%;
+    --primary-foreground: 0 0% 98%;
+
+    /* Secondary: Gold/Beige Accent */
+    --secondary: 45 40% 90%;
+    --secondary-foreground: 348 83% 32%;
+
+    /* Background: Warm White/Light Gray */
+    --background: 0 0% 100%;
+    --foreground: 348 60% 10%;
+
+    /* Cards & Popovers */
+    --card: 0 0% 100%;
+    --card-foreground: 348 60% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 348 60% 10%;
+
+    /* Muted: Soft Gray/Pinkish Tint */
+    --muted: 348 20% 96%;
+    --muted-foreground: 348 10% 40%;
+
+    /* Accent: Lighter Maroon for hovering */
+    --accent: 348 70% 95%;
+    --accent-foreground: 348 83% 32%;
+
+    /* Destructive */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders & Inputs */
+    --border: 348 15% 90%;
+    --input: 348 15% 90%;
+    --ring: 348 83% 32%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border transition-all duration-200 ease-in-out;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer utilities {
+  .shadow-custom {
+    box-shadow: 0 3px 14px rgba(100, 80, 140, 0.07), 0 6px 24px rgba(0, 0, 0, 0.03);
+  }
+
+  .shadow-custom-hover {
+    box-shadow: 0 5px 20px rgba(100, 80, 140, 0.12), 0 8px 30px rgba(0, 0, 0, 0.05);
+  }
+
+  .noise-texture {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+  }
+}
