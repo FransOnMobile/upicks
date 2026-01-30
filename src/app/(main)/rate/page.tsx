@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from "../../../../supabase/client";
+import { createClient } from "@/utils/supabase/client";
 import { SearchHero } from '@/components/professor-search/search-hero';
 import { ProfessorListItem } from '@/components/professor-search/professor-list-item';
 import { ProfessorCard, Professor } from '@/components/professor-search/professor-card';

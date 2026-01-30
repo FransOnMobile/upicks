@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AddCourseDialog } from './add-course-dialog';
-import { createClient } from "../../../supabase/client";
+import { createClient } from "@/utils/supabase/client";
 
 interface RatingFormProps {
   isOpen: boolean;

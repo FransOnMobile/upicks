@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createClient } from '../../supabase/server'
+import { createClient } from "@/utils/supabase/server"
 import { Button } from './ui/button'
 import UserProfile from './user-profile'
 

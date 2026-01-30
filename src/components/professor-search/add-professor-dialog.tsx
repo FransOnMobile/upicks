@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Plus } from 'lucide-react';
 import { AddDepartmentDialog } from './add-department-dialog';
-import { createClient } from "../../../supabase/client";
+import { createClient } from "@/utils/supabase/client";
 
 interface AddProfessorDialogProps {
     onAdd: (name: string, deptCode: string, courseCode: string) => Promise<void>;

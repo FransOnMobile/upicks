@@ -2,7 +2,7 @@
 import { UserCircle } from 'lucide-react'
 import { Button } from './ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu'
-import { createClient } from '../../supabase/client'
+import { createClient } from "@/utils/supabase/client"
 import { useRouter } from 'next/navigation'
 
 export default function UserProfile() {

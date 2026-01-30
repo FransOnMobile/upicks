@@ -61,6 +61,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 - **Dynamic Content**: Users can submit missing courses and departments for review.
 
 ## 🤝 Contributing
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+
 1.  Fork the repo
 2.  Create your feature branch (`git checkout -b feature/amazing-feature`)
 3.  Commit your changes (`git commit -m 'Add some amazing feature'`)
