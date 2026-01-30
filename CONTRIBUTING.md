@@ -68,20 +68,30 @@ If you want to edit code simultaneously with a teammate (like Google Docs), Git 
 
 ### 3. Database Changes (Supabase)
 
-We use a **Shared Remote Supabase Project**. This means everyone connects to the same database.
+We use a **Shared Remote Supabase Project**. To keep the database in sync with our code, we use **Automated Migrations** via GitHub Actions.
 
-*   **Data**: If you add a user or a rating, everyone else will see it immediately because we are all reading from the same cloud database.
-*   **Schema Changes (Migrations)**:
-    If you need to change the database structure (e.g., add a column), you must create a migration:
-    
-    1.  Make sure you have Supabase CLI installed.
-    2.  Run `supabase migration new your_migration_name`.
-    3.  Add your SQL to the new file in `supabase/migrations/`.
-    4.  Apply it to the remote database:
-        ```bash
-        supabase db push
-        ```
-    5.  **Commit the migration file** to Git so others get the schema update!
+#### How to apply schema changes:
+1.  **Develop Locally**: Create a migration using the Supabase CLI (optional, if you have it installed).
+    ```bash
+    supabase migration new description_of_change
+    ```
+2.  **Write SQL**: Add your SQL to the new file in `supabase/migrations/`.
+3.  **Push to GitHub**:
+    *   Simply commit the new `.sql` file and push to `main`.
+    *   The **GitHub Action** will automatically run `supabase db push` and apply the changes to the shared live database.
+
+> [!IMPORTANT]
+> **For the Repository Admin:**
+> You must configure these **GitHub Secrets** for the automation to work:
+> 1.  `SUPABASE_PROJECT_ID`: Your project's reference ID (found in Project Settings > General).
+> 2.  `SUPABASE_DB_PASSWORD`: The database password you set when creating the project.
+
+#### Manual Fix (If Automation is not set up)
+If you see errors like `Could not find column ... in schema cache`, it means the database is behind. You can manually run the SQL in the **Supabase Dashboard**:
+1.  Go to the [Supabase Dashboard](https://supabase.com/dashboard).
+2.  Open the **SQL Editor**.
+3.  Copy the content of the pending migration file (e.g., `supabase/migrations/20260130_add_data_moderation.sql`).
+4.  Run it.
 
 ### 4. Code Style & Linting
 *   We use Next.js with TypeScript.
