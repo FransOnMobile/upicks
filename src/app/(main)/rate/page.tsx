@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from "../../../../supabase/client";
 import { SearchHero } from '@/components/professor-search/search-hero';
@@ -12,13 +12,19 @@ import { AddProfessorDialog } from '@/components/professor-search/add-professor-
 import { Button } from '@/components/ui/button';
 
 export default function RatePage() {
+    // ... content moved to RatePageContent
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background noise-texture text-muted-foreground">Loading...</div>}>
+            <RatePageContent />
+        </Suspense>
+    );
+}
+
+function RatePageContent() {
     const searchParams = useSearchParams();
     const campus = searchParams.get('campus');
     const [searchValue, setSearchValue] = useState('');
     const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
-    // const [ratingRange, setRatingRange] = useState<[number, number]>([1, 5]); // Removed
-    // const [courseLevel, setCourseLevel] = useState('all'); // Removed
-    // const [sortBy, setSortBy] = useState('highest-rated'); // Removed
     const [departments, setDepartments] = useState<Array<{ id: string; name: string; code: string }>>([]);
     const [professors, setProfessors] = useState<Professor[]>([]);
     const [selectedProfessor, setSelectedProfessor] = useState<Professor | null>(null);
