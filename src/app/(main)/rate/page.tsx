@@ -8,6 +8,7 @@ import { Search } from 'lucide-react';
 import { ProfessorListItem } from '@/components/professor-search/professor-list-item';
 import { Professor } from '@/components/professor-search/professor-card';
 import { AddProfessorDialog } from '@/components/professor-search/add-professor-dialog';
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from '@/components/ui/button';
 
 export default function RatePage() {
@@ -27,7 +28,8 @@ function RatePageContent() {
     const campus = searchParams.get('campus');
     const [searchValue, setSearchValue] = useState("");
     const [sortBy, setSortBy] = useState('rating_desc');
-    const [departments, setDepartments] = useState<Array<{ id: string; name: string; code: string }>>([]);
+    const [userCampus, setUserCampus] = useState<string | null>(null);
+    const [departments, setDepartments] = useState<Array<{ id: string; name: string; code: string; campus: string }>>([]);
     const [professors, setProfessors] = useState<Professor[]>([]);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -37,9 +39,14 @@ function RatePageContent() {
         const loadData = async () => {
             setIsLoading(true);
             try {
-                // Check Authentication
+                // Check Authentication & Campus
                 const { data: { session } } = await supabase.auth.getSession();
                 setIsAuthenticated(!!session);
+
+                if (session?.user) {
+                    const { data: profile } = await supabase.from('users').select('campus').eq('id', session.user.id).single();
+                    if (profile) setUserCampus(profile.campus);
+                }
 
                 // Fetch Departments
                 const { data: deps } = await supabase.from('departments').select('*').order('name');
@@ -156,9 +163,13 @@ function RatePageContent() {
             alert("Please complete your profile first.");
             return;
         }
-        const dept = departments.find(d => d.code === deptCode || d.name.toLowerCase().includes(deptCode.toLowerCase()));
+        const dept = departments.find(d =>
+            (d.code.toLowerCase() === deptCode.toLowerCase() || d.name.toLowerCase().includes(deptCode.toLowerCase())) &&
+            d.campus === userCampus
+        );
+
         if (!dept) {
-            alert("Department not found. Please use a valid code (e.g. CS, MATH).");
+            alert(`College/Department not found for your campus (${userCampus}). Please use a valid code (e.g. CS, CSSP).`);
             return;
         }
         const { error } = await supabase
@@ -195,7 +206,48 @@ function RatePageContent() {
 
 
     if (isLoading) {
-        return <div className="min-h-screen flex items-center justify-center bg-background noise-texture text-muted-foreground">Checking access...</div>;
+        return (
+            <div className="min-h-screen bg-background noise-texture">
+                {/* Skeleton Hero */}
+                <div className="w-full bg-muted/20 h-64 relative overflow-hidden">
+                    <div className="max-w-4xl mx-auto pt-24 px-4 text-center space-y-4">
+                        <Skeleton className="h-16 w-3/4 mx-auto" />
+                        <Skeleton className="h-6 w-1/2 mx-auto" />
+                        <div className="relative max-w-2xl mx-auto w-full pt-8">
+                            <Skeleton className="h-16 w-full rounded-full" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="max-w-5xl mx-auto px-4 py-8 -mt-8 relative z-20">
+                    {/* Skeleton Filter Bar */}
+                    <Skeleton className="h-20 w-full rounded-xl mb-8 opacity-80" />
+
+                    {/* Skeleton Results */}
+                    <div className="space-y-4">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="h-32 bg-card border border-border rounded-xl p-4 flex items-center justify-between">
+                                <div className="flex gap-4 w-full">
+                                    <Skeleton className="w-16 h-16 rounded-xl" />
+                                    <div className="space-y-2 flex-1">
+                                        <Skeleton className="h-6 w-48" />
+                                        <Skeleton className="h-4 w-32" />
+                                        <div className="flex gap-2 mt-2">
+                                            <Skeleton className="h-5 w-16" />
+                                            <Skeleton className="h-5 w-16" />
+                                        </div>
+                                    </div>
+                                    <div className="w-24 space-y-2">
+                                        <Skeleton className="h-8 w-16 ml-auto" />
+                                        <Skeleton className="h-4 w-20 ml-auto" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (!isAuthenticated) return null;
@@ -325,7 +377,8 @@ function RatePageContent() {
                                         <div className="mt-8">
                                             <AddProfessorDialog
                                                 onAdd={handleAddProfessor}
-                                                departments={departments}
+                                                departments={departments.filter(d => d.campus === userCampus)}
+                                                userCampus={userCampus}
                                                 trigger={
                                                     <Button variant="outline" className="mt-4">
                                                         Add Missing Professor
@@ -340,6 +393,6 @@ function RatePageContent() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

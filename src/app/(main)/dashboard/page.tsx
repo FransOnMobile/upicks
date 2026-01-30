@@ -29,7 +29,7 @@ export default async function Dashboard() {
   }
 
 
-  // Fetch recent ratings
+  // Fetch recent ratings (Community)
   const { data: recentRatings } = await supabase
     .from("ratings")
     .select(`
@@ -42,6 +42,26 @@ export default async function Dashboard() {
     `)
     .order("created_at", { ascending: false })
     .limit(4);
+
+  // Fetch my professor ratings
+  const { data: myProfRatings } = await supabase
+    .from("ratings")
+    .select(`
+        id,
+        overall_rating,
+        review_text,
+        created_at,
+        professors (name)
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  // Fetch my campus ratings
+  const { data: myCampusRatings } = await supabase
+    .from("campus_ratings")
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
 
   return (
     <main className="w-full bg-background min-h-screen">
@@ -150,6 +170,61 @@ export default async function Dashboard() {
           </div>
         </section>
 
+
+
+        {/* My Activity Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* My Professor Ratings */}
+          <section className="bg-card rounded-xl border border-border/50 p-6">
+            <h3 className="text-xl font-bold font-playfair mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary" />
+              My Professor Ratings
+            </h3>
+            <div className="space-y-4">
+              {myProfRatings && myProfRatings.length > 0 ? (
+                myProfRatings.map((rating: any) => (
+                  <div key={rating.id} className="p-3 bg-background rounded-lg border border-border/50 flex justify-between items-start">
+                    <div>
+                      <div className="font-bold text-sm">{rating.professors?.name}</div>
+                      <p className="text-xs text-muted-foreground line-clamp-1 italic">"{rating.review_text}"</p>
+                    </div>
+                    <div className="text-xs font-bold bg-secondary/30 px-2 py-1 rounded">
+                      {rating.overall_rating}/5
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground italic">You haven't rated any professors yet.</p>
+              )}
+            </div>
+          </section>
+
+          {/* My Campus Ratings */}
+          <section className="bg-card rounded-xl border border-border/50 p-6">
+            <h3 className="text-xl font-bold font-playfair mb-4 flex items-center gap-2">
+              <School className="w-5 h-5 text-primary" />
+              My Campus Ratings
+            </h3>
+            <div className="space-y-4">
+              {myCampusRatings && myCampusRatings.length > 0 ? (
+                myCampusRatings.map((rating: any) => (
+                  <div key={rating.id} className="p-3 bg-background rounded-lg border border-border/50 flex justify-between items-start">
+                    <div>
+                      <div className="font-bold text-sm capitalize">{rating.campus_id.replace('-', ' ')}</div>
+                      <p className="text-xs text-muted-foreground line-clamp-1 italic">"{rating.review_text}"</p>
+                    </div>
+                    <div className="text-xs font-bold bg-secondary/30 px-2 py-1 rounded">
+                      {rating.overall_rating}/5
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground italic">You haven't rated any campuses yet.</p>
+              )}
+            </div>
+          </section>
+        </div>
+
         {/* User Profile Details (Minimized) */}
         <section className="bg-card rounded-xl p-4 border shadow-sm opacity-80 hover:opacity-100 transition-opacity">
           <div className="flex items-center gap-4">
@@ -165,7 +240,7 @@ export default async function Dashboard() {
             </div>
           </div>
         </section>
-      </div>
-    </main>
+      </div >
+    </main >
   );
 }

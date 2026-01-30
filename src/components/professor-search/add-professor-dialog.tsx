@@ -28,9 +28,10 @@ interface AddProfessorDialogProps {
     onAdd: (name: string, deptCode: string, courseCode: string) => Promise<void>;
     departments: Array<{ id: string; name: string; code: string }>;
     trigger?: React.ReactNode;
+    userCampus: string | null;
 }
 
-export function AddProfessorDialog({ onAdd, departments, trigger }: AddProfessorDialogProps) {
+export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: AddProfessorDialogProps) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState('');
     const [deptCode, setDeptCode] = useState('');
@@ -65,7 +66,7 @@ export function AddProfessorDialog({ onAdd, departments, trigger }: AddProfessor
                     <DialogTitle className="font-playfair text-2xl tracking-tight">Add New Professor</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
                         Can't find your professor? Add them to the list so you can rate them.
-                        This will be reviewed by our moderators before appearing publicly.
+                        This will be reviewed by our moderators.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-6 py-4">
@@ -97,12 +98,17 @@ export function AddProfessorDialog({ onAdd, departments, trigger }: AddProfessor
                         <div className="flex justify-end mt-1">
                             <AddDepartmentDialog
                                 onAdd={async (name, code) => {
+                                    if (!userCampus) {
+                                        alert("You must complete your profile (set campus) before adding departments.");
+                                        return;
+                                    }
                                     const supabase = createClient();
                                     const { data: { user } } = await supabase.auth.getUser();
                                     if (!user) return;
                                     const { error } = await supabase.from('departments').insert({
                                         name,
                                         code,
+                                        campus: userCampus,
                                         is_verified: false,
                                         submitted_by: user.id
                                     });

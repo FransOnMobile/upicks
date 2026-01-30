@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, School, BookOpen, ThumbsUp, MessageSquare, ArrowLeft } from 'lucide-react';
 import { RatingForm } from '@/components/professor-search/rating-form';
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ProfessorDetailsPage() {
     const params = useParams();
@@ -109,7 +110,19 @@ export default function ProfessorDetailsPage() {
         };
 
         loadData();
-    }, [professorId, supabase]);
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            const isAuth = !!session;
+            setIsAuthenticated(isAuth);
+            if (!isAuth) {
+                setShowRatingForm(false);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [professorId]);
 
     const handleUpvote = async (reviewId: string) => {
         if (!isAuthenticated) {
@@ -128,8 +141,25 @@ export default function ProfessorDetailsPage() {
         }));
 
         // DB Call
-        const { error } = await supabase.rpc('increment_helpful_count', { rating_id: reviewId });
-        if (error) console.error("Error upvoting", error);
+        const currentReview = reviews.find(r => r.id === reviewId);
+        if (!currentReview) return;
+
+        const { error } = await supabase
+            .from('ratings')
+            .update({ helpful_count: currentReview.helpful_count + 1 })
+            .eq('id', reviewId);
+
+        if (error) {
+            console.error("Error upvoting:", error);
+            alert("Failed to upvote. Please try again.");
+            // Revert optimistic update
+            setReviews(prev => prev.map(r => {
+                if (r.id === reviewId) {
+                    return { ...r, helpful_count: r.helpful_count }; // Revert
+                }
+                return r;
+            }));
+        }
     };
 
     const handleRatingSubmit = async (data: any) => {
@@ -169,12 +199,86 @@ export default function ProfessorDetailsPage() {
     };
 
 
+    const handleReport = async (reviewId: string) => {
+        if (!isAuthenticated) return;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const reason = prompt("Please provide a reason for reporting this review:");
+        if (!reason) return;
+
+        const { error } = await supabase
+            .from('reports')
+            .insert({
+                reporter_id: user.id,
+                target_type: 'rating', // Correct schema value
+                target_id: reviewId,
+                reason: reason,
+                status: 'pending'
+            });
+
+        if (error) {
+            console.error("Error reporting:", error);
+            alert("Failed to submit report.");
+        } else {
+            alert("Report submitted for review. Thank you for helping keep our community safe.");
+        }
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="animate-pulse flex flex-col items-center">
-                    <div className="h-12 w-12 bg-muted rounded-full mb-4"></div>
-                    <div className="h-4 w-32 bg-muted rounded"></div>
+            <div className="min-h-screen bg-background pb-20">
+                {/* Skeleton Header */}
+                <div className="bg-muted/10 pt-24 pb-12 px-4 shadow-sm relative overflow-hidden">
+                    <div className="max-w-5xl mx-auto relative z-10 flex flex-col md:flex-row gap-8 items-start">
+                        <Skeleton className="w-24 h-24 md:w-32 md:h-32 rounded-2xl" />
+                        <div className="flex-1 space-y-4">
+                            <Skeleton className="h-10 w-3/4 max-w-md" />
+                            <div className="flex gap-4">
+                                <Skeleton className="h-6 w-32" />
+                                <Skeleton className="h-6 w-24" />
+                            </div>
+                            <div className="flex gap-2">
+                                <Skeleton className="h-6 w-20" />
+                                <Skeleton className="h-6 w-20" />
+                                <Skeleton className="h-6 w-20" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="max-w-5xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Skeleton Stats */}
+                    <div className="space-y-6">
+                        <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-4">
+                            <Skeleton className="h-6 w-32 mb-4" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-14 w-full mt-6 rounded-lg" />
+                        </div>
+                    </div>
+
+                    {/* Skeleton Reviews */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Skeleton className="h-8 w-48 mb-4" />
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-4">
+                                <div className="flex justify-between">
+                                    <div className="flex gap-4">
+                                        <Skeleton className="w-12 h-12 rounded-lg" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-5 w-32" />
+                                            <Skeleton className="h-4 w-24" />
+                                        </div>
+                                    </div>
+                                    <Skeleton className="h-6 w-20" />
+                                </div>
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-2/3" />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
@@ -339,7 +443,10 @@ export default function ProfessorDetailsPage() {
                                         <ThumbsUp className="w-4 h-4" />
                                         <span>Helpful ({review.helpful_count})</span>
                                     </button>
-                                    <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                                    <button
+                                        onClick={() => handleReport(review.id)}
+                                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors"
+                                    >
                                         <MessageSquare className="w-4 h-4" />
                                         <span>Report</span>
                                     </button>

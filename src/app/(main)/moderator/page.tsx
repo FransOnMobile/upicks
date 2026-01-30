@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, CheckCircle, XCircle, Clock, School } from 'lucide-react';
+import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2 } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
     TableBody,
@@ -20,12 +21,13 @@ import {
 interface Report {
     id: string;
     target_id: string;
-    target_type: 'professor' | 'rating' | 'department';
+    target_type: 'professor' | 'rating' | 'department' | 'professor_rating' | 'campus_rating';
     reason: string;
     details: string;
     status: 'pending' | 'resolved' | 'dismissed';
     created_at: string;
     reporter_id: string;
+    content?: string; // New field for content preview
 }
 
 export default function ModeratorDashboard() {
@@ -71,12 +73,46 @@ export default function ModeratorDashboard() {
     }, [router]);
 
     const loadReports = async () => {
-        const { data } = await supabase
+        const { data: reportsData } = await supabase
             .from('reports')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (data) setReports(data as Report[]);
+        if (!reportsData) return;
+
+        // Fetch content for ratings
+        // 'rating' comes from professor page, 'professor_rating' might be future/other, 'campus_rating' from campus
+        const profRatingIds = reportsData
+            .filter(r => r.target_type === 'professor_rating' || r.target_type === 'rating')
+            .map(r => r.target_id);
+
+        const campusRatingIds = reportsData.filter(r => r.target_type === 'campus_rating').map(r => r.target_id);
+
+        let profRatings: any[] = [];
+        let campusRatings: any[] = [];
+
+        if (profRatingIds.length > 0) {
+            const { data } = await supabase.from('ratings').select('id, review_text').in('id', profRatingIds);
+            if (data) profRatings = data;
+        }
+
+        if (campusRatingIds.length > 0) {
+            const { data } = await supabase.from('campus_ratings').select('id, review_text').in('id', campusRatingIds);
+            if (data) campusRatings = data;
+        }
+
+        // Map content back to reports
+        const enrichedReports = reportsData.map(r => {
+            let content = '';
+            if (r.target_type === 'professor_rating' || r.target_type === 'rating') {
+                content = profRatings.find(pr => pr.id === r.target_id)?.review_text || 'Content not found (deleted?)';
+            } else if (r.target_type === 'campus_rating') {
+                content = campusRatings.find(cr => cr.id === r.target_id)?.review_text || 'Content not found (deleted?)';
+            }
+            return { ...r, content };
+        });
+
+        setReports(enrichedReports as Report[]);
     };
 
     const loadPendingProfessors = async () => {
@@ -128,6 +164,30 @@ export default function ModeratorDashboard() {
         }
     };
 
+    const handleDeleteContent = async (reportId: string, targetType: string, targetId: string) => {
+        if (!confirm("Are you sure you want to DELETE this content? This cannot be undone.")) return;
+
+        let table = '';
+        if (targetType === 'professor_rating' || targetType === 'rating') table = 'ratings';
+        else if (targetType === 'campus_rating') table = 'campus_ratings';
+        else {
+            alert("Cannot delete this type of content automatically yet.");
+            return;
+        }
+
+        // Delete content
+        const { error: deleteError } = await supabase.from(table).delete().eq('id', targetId);
+        if (deleteError) {
+            console.error("Error deleting content:", deleteError);
+            alert("Failed to delete content: " + deleteError.message);
+            return;
+        }
+
+        // Resolve report
+        await handleAction(reportId, 'resolve');
+        alert("Content deleted and report resolved.");
+    };
+
     const handleApprovalAction = async (
         table: 'professors' | 'departments' | 'courses',
         id: string,
@@ -168,7 +228,46 @@ export default function ModeratorDashboard() {
     };
 
     if (isLoading) {
-        return <div className="min-h-screen flex items-center justify-center">Loading Dashboard...</div>;
+        return (
+            <div className="min-h-screen bg-slate-50 p-8">
+                <div className="max-w-7xl mx-auto space-y-8">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-64" />
+                        <Skeleton className="h-4 w-48" />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-4">
+                        {[1, 2, 3, 4].map((i) => (
+                            <Card key={i}>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <Skeleton className="h-4 w-24" />
+                                    <Skeleton className="h-4 w-4 rounded-full" />
+                                </CardHeader>
+                                <CardContent>
+                                    <Skeleton className="h-8 w-12 mb-1" />
+                                    <Skeleton className="h-3 w-20" />
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    <div className="space-y-4">
+                        <Skeleton className="h-10 w-96 rounded-lg" />
+                        <Card>
+                            <div className="p-6 space-y-4">
+                                <div className="flex justify-between">
+                                    <Skeleton className="h-4 w-32" />
+                                    <Skeleton className="h-4 w-20" />
+                                </div>
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     const pendingReports = reports.filter(r => r.status === 'pending');
@@ -178,7 +277,7 @@ export default function ModeratorDashboard() {
         <div className="min-h-screen bg-slate-50 p-8">
             <div className="max-w-7xl mx-auto space-y-8">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Moderator Dashboard</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-playfair">Moderator Dashboard</h1>
                     <p className="text-slate-500">Manage reports and content moderation.</p>
                 </div>
 
@@ -389,8 +488,8 @@ export default function ModeratorDashboard() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Target</TableHead>
+                                        <TableHead>Content Preview</TableHead>
                                         <TableHead>Reason</TableHead>
-                                        <TableHead>Details</TableHead>
                                         <TableHead>Date</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
@@ -407,12 +506,11 @@ export default function ModeratorDashboard() {
                                             <TableRow key={report.id}>
                                                 <TableCell>
                                                     <Badge variant="outline" className="mr-2">{report.target_type}</Badge>
-                                                    <span className="font-mono text-xs">{report.target_id.slice(0, 8)}...</span>
+                                                </TableCell>
+                                                <TableCell className="max-w-xs truncate font-mono text-xs text-muted-foreground" title={report.content}>
+                                                    {report.content || '...'}
                                                 </TableCell>
                                                 <TableCell>{report.reason}</TableCell>
-                                                <TableCell className="max-w-md truncate" title={report.details}>
-                                                    {report.details || '-'}
-                                                </TableCell>
                                                 <TableCell>{new Date(report.created_at).toLocaleDateString()}</TableCell>
                                                 <TableCell className="text-right space-x-2">
                                                     <Button size="sm" variant="outline" onClick={() => handleAction(report.id, 'dismiss')}>
@@ -420,14 +518,19 @@ export default function ModeratorDashboard() {
                                                     </Button>
                                                     <Button
                                                         size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => {
-                                                            if (confirm('Are you sure? This will simulate finding validation (no deletion yet).')) {
-                                                                handleAction(report.id, 'resolve');
-                                                            }
-                                                        }}
+                                                        variant="default" // Keep Resolve as primary safe action
+                                                        onClick={() => handleAction(report.id, 'resolve')}
                                                     >
-                                                        Resolve
+                                                        Keep
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        title="Delete Content & Resolve"
+                                                        onClick={() => handleDeleteContent(report.id, report.target_type, report.target_id)}
+                                                    >
+                                                        <span className="sr-only">Delete</span>
+                                                        <Trash2 className="w-4 h-4" />
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
