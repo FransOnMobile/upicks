@@ -3,6 +3,7 @@
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
+
 interface SearchHeroProps {
   onSearchChange: (value: string) => void;
   searchValue: string;
@@ -10,6 +11,8 @@ interface SearchHeroProps {
   totalReviews: number;
   title?: string;
   subtitle?: string;
+  statLabel1?: string;
+  statLabel2?: string;
 }
 
 export function SearchHero({
@@ -18,30 +21,45 @@ export function SearchHero({
   totalProfessors,
   totalReviews,
   title = "Find Your Professor",
-  subtitle = "Search via name or department to see what students are saying."
+  subtitle = "Search by name, department, or course code",
+  statLabel1 = "Professors",
+  statLabel2 = "Reviews",
 }: SearchHeroProps) {
   return (
-    <div className="w-full bg-[#faf8ff] noise-texture pt-24 pb-12 px-4 flex flex-col items-center text-center">
-      <div className="max-w-4xl w-full">
-        <h1 className="text-5xl md:text-7xl font-bold text-[#2d2540] mb-6 leading-tight font-playfair">
+    <div className="w-full relative bg-gradient-to-br from-[#7b1113] to-[#590d0e] text-white pt-24 pb-16 px-4 flex flex-col items-center text-center overflow-hidden shadow-2xl">
+      {/* Abstract Background Shapes */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-white rounded-full blur-[100px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#ffb74d] rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 max-w-4xl w-full space-y-6">
+        <h1 className="text-5xl md:text-7xl font-bold mb-4 font-playfair tracking-tight drop-shadow-md">
           {title}
         </h1>
-        <p className="text-xl md:text-2xl text-[#2d2540]/60 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto font-light leading-relaxed">
           {subtitle}
         </p>
 
-        <div className="relative max-w-2xl mx-auto w-full shadow-2xl rounded-lg">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-6 w-6 text-muted-foreground/50" />
+        <div className="relative max-w-2xl mx-auto w-full pt-8">
+          <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none z-10 pt-8">
+            <Search className="h-6 w-6 text-gray-400" />
           </div>
           <Input
             type="text"
-            placeholder="Search for a professor..."
+            placeholder="Search by name..."
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-12 pr-6 py-8 text-xl w-full bg-white border-none rounded-lg focus:ring-4 focus:ring-primary/20 placeholder:text-muted-foreground/40"
+            className="pl-14 pr-6 h-16 text-lg w-full bg-white/95 backdrop-blur-md text-gray-900 border-0 rounded-full shadow-xl focus:ring-4 focus:ring-white/30 placeholder:text-gray-500 transition-all hover:bg-white"
             autoFocus
           />
+        </div>
+
+        {/* Quick Stats */}
+        <div className="flex justify-center gap-8 mt-8 text-white/80 text-sm font-medium tracking-wider uppercase">
+          <div>{totalProfessors} {statLabel1}</div>
+          <div className="w-px h-4 bg-white/30" />
+          <div>{totalReviews} {statLabel2}</div>
         </div>
       </div>
     </div>

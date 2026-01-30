@@ -19,13 +19,19 @@ export default async function Navbar() {
           <div className="hidden md:flex gap-6 border-l border-border pl-6">
             <Link
               href="/rate"
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2"
             >
-              Rate
+              Rate Professor
+            </Link>
+            <Link
+              href="/campuses"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2"
+            >
+              Rate Campus
             </Link>
             <Link
               href="/community"
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2"
             >
               Community
             </Link>
