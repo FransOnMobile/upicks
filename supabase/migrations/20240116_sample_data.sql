@@ -39,13 +39,24 @@ BEGIN
     ('Dr. Elena Rodriguez', dept_math) RETURNING id INTO prof5;
 
   INSERT INTO courses (code, name, level, department_id) VALUES
-    ('CS 101', 'Introduction to Computer Science', 'undergraduate', dept_cs) RETURNING id INTO course1;
+    ('CS 101', 'Introduction to Computer Science', 'undergraduate', dept_cs) ON CONFLICT (code) DO NOTHING RETURNING id INTO course1;
+
+  -- Fallback if insert failed (row exists)
+  IF course1 IS NULL THEN
+     SELECT id INTO course1 FROM courses WHERE code = 'CS 101';
+  END IF;
+
   INSERT INTO courses (code, name, level, department_id) VALUES
-    ('CS 201', 'Data Structures and Algorithms', 'undergraduate', dept_cs) RETURNING id INTO course2;
+    ('CS 201', 'Data Structures and Algorithms', 'undergraduate', dept_cs) ON CONFLICT (code) DO NOTHING RETURNING id INTO course2;
+  IF course2 IS NULL THEN SELECT id INTO course2 FROM courses WHERE code = 'CS 201'; END IF;
+
   INSERT INTO courses (code, name, level, department_id) VALUES
-    ('MATH 101', 'Calculus I', 'undergraduate', dept_math) RETURNING id INTO course3;
+    ('MATH 101', 'Calculus I', 'undergraduate', dept_math) ON CONFLICT (code) DO NOTHING RETURNING id INTO course3;
+  IF course3 IS NULL THEN SELECT id INTO course3 FROM courses WHERE code = 'MATH 101'; END IF;
+
   INSERT INTO courses (code, name, level, department_id) VALUES
-    ('PHYS 101', 'Physics I', 'undergraduate', dept_phys) RETURNING id INTO course4;
+    ('PHYS 101', 'Physics I', 'undergraduate', dept_phys) ON CONFLICT (code) DO NOTHING RETURNING id INTO course4;
+  IF course4 IS NULL THEN SELECT id INTO course4 FROM courses WHERE code = 'PHYS 101'; END IF;
 
   INSERT INTO professor_courses (professor_id, course_id) VALUES
     (prof1, course1),

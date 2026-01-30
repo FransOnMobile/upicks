@@ -88,11 +88,17 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                                 <SelectValue placeholder="Select Department" />
                             </SelectTrigger>
                             <SelectContent className="max-h-[200px] rounded-xl">
-                                {departments.map((dept) => (
-                                    <SelectItem key={dept.id} value={dept.code}>
-                                        {dept.name} ({dept.code})
-                                    </SelectItem>
-                                ))}
+                                {departments.length > 0 ? (
+                                    departments.map((dept) => (
+                                        <SelectItem key={dept.id} value={dept.code}>
+                                            {dept.name} ({dept.code})
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <div className="p-2 text-sm text-muted-foreground text-center">
+                                        No departments found for your campus ("{userCampus}").
+                                    </div>
+                                )}
                             </SelectContent>
                         </Select>
                         <div className="flex justify-end mt-1">

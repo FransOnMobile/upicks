@@ -3,12 +3,14 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 -- Allow users to insert their own profile
 -- This is needed for the first time setup in Onboarding
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
 CREATE POLICY "Users can insert own profile" 
 ON public.users 
 FOR INSERT 
 WITH CHECK (auth.uid()::text = id::text);
 
 -- Allow users to update their own profile
+DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 CREATE POLICY "Users can update own profile" 
 ON public.users 
 FOR UPDATE 

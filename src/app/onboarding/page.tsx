@@ -51,7 +51,13 @@ export default async function OnboardingPage(props: {
                         >
                             <option value="" disabled>Select your campus</option>
                             <option value="diliman">UP Diliman</option>
+                            <option value="los-banos">UP Los Baños</option>
+                            <option value="manila">UP Manila</option>
+                            <option value="visayas">UP Visayas</option>
+                            <option value="baguio">UP Baguio</option>
+                            <option value="cebu">UP Cebu</option>
                             <option value="mindanao">UP Mindanao</option>
+                            <option value="ou">UP Open University</option>
                         </select>
                         <svg
                             className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none"

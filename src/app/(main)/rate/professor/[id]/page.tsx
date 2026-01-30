@@ -70,6 +70,8 @@ export default function ProfessorDetailsPage() {
                 teaching_quality: r.teaching_quality,
                 fairness: r.fairness,
                 clarity: r.clarity,
+                difficulty: r.difficulty,
+                would_take_again: r.would_take_again,
                 grade: r.grade_received,
                 attendance: r.mandatory_attendance ? 'Mandatory' : 'Optional'
             })) || [];
@@ -79,6 +81,18 @@ export default function ProfessorDetailsPage() {
             const avgRating = totalReviews > 0
                 ? formattedReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
                 : 0;
+
+            // Calculate Difficulty (average of non-null values)
+            const difficultyRatings = formattedReviews.filter(r => r.difficulty != null);
+            const avgDifficulty = difficultyRatings.length > 0
+                ? difficultyRatings.reduce((sum, r) => sum + r.difficulty, 0) / difficultyRatings.length
+                : 0;
+
+            // Calculate Would Take Again (percentage of true values)
+            const wouldTakeAgainRatings = formattedReviews.filter(r => r.would_take_again != null);
+            const wouldTakeAgainPercent = wouldTakeAgainRatings.length > 0
+                ? Math.round((wouldTakeAgainRatings.filter(r => r.would_take_again).length / wouldTakeAgainRatings.length) * 100)
+                : null;
 
             // Extract top tags
             const tagCounts: Record<string, number> = {};
@@ -95,7 +109,9 @@ export default function ProfessorDetailsPage() {
                 department: profData.departments?.name,
                 overallRating: avgRating,
                 reviewCount: totalReviews,
-                topTags: topTags
+                topTags: topTags,
+                difficulty: avgDifficulty,
+                wouldTakeAgain: wouldTakeAgainPercent
             });
 
             setReviews(formattedReviews);
@@ -360,14 +376,13 @@ export default function ProfessorDetailsPage() {
                                 <span className="text-muted-foreground">Reviews</span>
                                 <span className="font-semibold">{professor.reviewCount}</span>
                             </div>
-                            {/* Placeholder stats - could be real computed values */}
                             <div className="flex justify-between items-center py-2 border-b border-border/50">
                                 <span className="text-muted-foreground">Difficulty</span>
-                                <span className="font-semibold">3.5 / 5</span>
+                                <span className="font-semibold">{professor.difficulty > 0 ? professor.difficulty.toFixed(1) + ' / 5' : 'N/A'}</span>
                             </div>
                             <div className="flex justify-between items-center py-2 border-b border-border/50">
                                 <span className="text-muted-foreground">Would Take Again</span>
-                                <span className="font-semibold">85%</span>
+                                <span className="font-semibold">{professor.wouldTakeAgain !== null ? professor.wouldTakeAgain + '%' : 'N/A'}</span>
                             </div>
                         </div>
 
