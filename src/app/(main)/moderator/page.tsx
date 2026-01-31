@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users } from 'lucide-react';
+import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users, Search } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import {
     Table,
     TableBody,
@@ -39,6 +40,8 @@ interface UserRecord {
     created_at: string;
 }
 
+const USERS_PER_PAGE = 10;
+
 export default function ModeratorDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [reports, setReports] = useState<Report[]>([]);
@@ -48,6 +51,8 @@ export default function ModeratorDashboard() {
     const [pendingCourses, setPendingCourses] = useState<any[]>([]);
     const [allUsers, setAllUsers] = useState<UserRecord[]>([]);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [userSearchTerm, setUserSearchTerm] = useState('');
+    const [userPage, setUserPage] = useState(0);
     const supabase = createClient();
     const router = useRouter();
 
@@ -624,63 +629,110 @@ export default function ModeratorDashboard() {
                                     User Management
                                 </CardTitle>
                                 <CardDescription>Promote users to moderator or demote moderators.</CardDescription>
+                                <div className="relative mt-4">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search by email or name..."
+                                        value={userSearchTerm}
+                                        onChange={(e) => { setUserSearchTerm(e.target.value); setUserPage(0); }}
+                                        className="pl-10"
+                                    />
+                                </div>
                             </CardHeader>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Campus</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Joined</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {allUsers.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                                No users found.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        allUsers.map((u) => (
-                                            <TableRow key={u.id}>
-                                                <TableCell className="font-medium">{u.email}</TableCell>
-                                                <TableCell>{u.name || '-'}</TableCell>
-                                                <TableCell>{u.campus || '-'}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={u.role === 'moderator' ? 'default' : 'secondary'}>
-                                                        {u.role}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>{new Date(u.created_at).toLocaleDateString()}</TableCell>
-                                                <TableCell className="text-right">
-                                                    {u.id === currentUserId ? (
-                                                        <span className="text-xs text-muted-foreground">You</span>
-                                                    ) : u.role === 'moderator' ? (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handleRoleChange(u.id, 'user')}
-                                                        >
-                                                            Demote
-                                                        </Button>
-                                                    ) : (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="default"
-                                                            onClick={() => handleRoleChange(u.id, 'moderator')}
-                                                        >
-                                                            Promote
-                                                        </Button>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
+                            {(() => {
+                                const filteredUsers = allUsers.filter(u =>
+                                    u.email.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                                    (u.name && u.name.toLowerCase().includes(userSearchTerm.toLowerCase()))
+                                );
+                                const paginatedUsers = filteredUsers.slice(userPage * USERS_PER_PAGE, (userPage + 1) * USERS_PER_PAGE);
+                                const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+
+                                return (
+                                    <>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Email</TableHead>
+                                                    <TableHead>Name</TableHead>
+                                                    <TableHead>Campus</TableHead>
+                                                    <TableHead>Role</TableHead>
+                                                    <TableHead>Joined</TableHead>
+                                                    <TableHead className="text-right">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {paginatedUsers.length === 0 ? (
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                                            {userSearchTerm ? 'No users match your search.' : 'No users found.'}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : (
+                                                    paginatedUsers.map((u) => (
+                                                        <TableRow key={u.id}>
+                                                            <TableCell className="font-medium">{u.email}</TableCell>
+                                                            <TableCell>{u.name || '-'}</TableCell>
+                                                            <TableCell>{u.campus || '-'}</TableCell>
+                                                            <TableCell>
+                                                                <Badge variant={u.role === 'moderator' ? 'default' : 'secondary'}>
+                                                                    {u.role}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell>{new Date(u.created_at).toLocaleDateString()}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                {u.id === currentUserId ? (
+                                                                    <span className="text-xs text-muted-foreground">You</span>
+                                                                ) : u.role === 'moderator' ? (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={() => handleRoleChange(u.id, 'user')}
+                                                                    >
+                                                                        Demote
+                                                                    </Button>
+                                                                ) : (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="default"
+                                                                        onClick={() => handleRoleChange(u.id, 'moderator')}
+                                                                    >
+                                                                        Promote
+                                                                    </Button>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                        {totalPages > 1 && (
+                                            <div className="flex items-center justify-between px-4 py-3 border-t">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Showing {userPage * USERS_PER_PAGE + 1}-{Math.min((userPage + 1) * USERS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length}
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={userPage === 0}
+                                                        onClick={() => setUserPage(p => p - 1)}
+                                                    >
+                                                        Previous
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={userPage >= totalPages - 1}
+                                                        onClick={() => setUserPage(p => p + 1)}
+                                                    >
+                                                        Next
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </Card>
                     </TabsContent>
                 </Tabs>
