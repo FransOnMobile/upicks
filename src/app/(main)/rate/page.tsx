@@ -154,7 +154,10 @@ function RatePageContent() {
 
 
     const handleAddProfessor = async (name: string, deptCode: string, courseCode: string) => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated) {
+            router.push('/sign-in');
+            return;
+        }
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         const { data: profile } = await supabase.from('users').select('campus').eq('id', user.id).single();
@@ -250,7 +253,7 @@ function RatePageContent() {
         );
     }
 
-    if (!isAuthenticated) return null;
+
 
     return (
         <div className="min-h-screen bg-background noise-texture">
