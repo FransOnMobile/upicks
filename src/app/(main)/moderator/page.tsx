@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2 } from 'lucide-react';
+import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
@@ -30,6 +30,15 @@ interface Report {
     content?: string; // New field for content preview
 }
 
+interface UserRecord {
+    id: string;
+    email: string;
+    name: string | null;
+    role: string;
+    campus: string | null;
+    created_at: string;
+}
+
 export default function ModeratorDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [reports, setReports] = useState<Report[]>([]);
@@ -37,8 +46,11 @@ export default function ModeratorDashboard() {
     const [pendingProfessors, setPendingProfessors] = useState<any[]>([]);
     const [pendingDepartments, setPendingDepartments] = useState<any[]>([]);
     const [pendingCourses, setPendingCourses] = useState<any[]>([]);
+    const [allUsers, setAllUsers] = useState<UserRecord[]>([]);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const supabase = createClient();
     const router = useRouter();
+
 
     useEffect(() => {
         const checkAccess = async () => {
@@ -47,6 +59,8 @@ export default function ModeratorDashboard() {
                 router.push('/sign-in');
                 return;
             }
+
+            setCurrentUserId(user.id);
 
             const { data: userData } = await supabase
                 .from('users')
@@ -64,13 +78,41 @@ export default function ModeratorDashboard() {
                 loadReports(),
                 loadPendingProfessors(),
                 loadPendingDepartments(),
-                loadPendingCourses()
+                loadPendingCourses(),
+                loadUsers()
             ]);
             setIsLoading(false);
         };
 
         checkAccess();
     }, [router]);
+
+    const loadUsers = async () => {
+        const { data } = await supabase
+            .from('users')
+            .select('id, email, name, role, campus, created_at')
+            .order('created_at', { ascending: false });
+        if (data) setAllUsers(data);
+    };
+
+    const handleRoleChange = async (userId: string, newRole: 'user' | 'moderator') => {
+        if (userId === currentUserId) {
+            alert("You cannot change your own role.");
+            return;
+        }
+        const { error } = await supabase
+            .from('users')
+            .update({ role: newRole })
+            .eq('id', userId);
+
+        if (error) {
+            console.error("Error updating role:", error);
+            alert("Failed to update role: " + error.message);
+        } else {
+            loadUsers();
+            alert(`User role updated to ${newRole}.`);
+        }
+    };
 
     const loadReports = async () => {
         const { data: reportsData } = await supabase
@@ -332,6 +374,7 @@ export default function ModeratorDashboard() {
                         <TabsTrigger value="pending-profs">Pending ({pendingProfessors.length + pendingDepartments.length + pendingCourses.length})</TabsTrigger>
                         <TabsTrigger value="pending">Reports ({pendingReports.length})</TabsTrigger>
                         <TabsTrigger value="history">Report History</TabsTrigger>
+                        <TabsTrigger value="users">Users ({allUsers.length})</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="pending-profs" className="mt-4">
@@ -569,6 +612,73 @@ export default function ModeratorDashboard() {
                                             <TableCell>{new Date(report.created_at).toLocaleDateString()}</TableCell>
                                         </TableRow>
                                     ))}
+                                </TableBody>
+                            </Table>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="users" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users className="h-5 w-5" />
+                                    User Management
+                                </CardTitle>
+                                <CardDescription>Promote users to moderator or demote moderators.</CardDescription>
+                            </CardHeader>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Campus</TableHead>
+                                        <TableHead>Role</TableHead>
+                                        <TableHead>Joined</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {allUsers.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                                No users found.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        allUsers.map((u) => (
+                                            <TableRow key={u.id}>
+                                                <TableCell className="font-medium">{u.email}</TableCell>
+                                                <TableCell>{u.name || '-'}</TableCell>
+                                                <TableCell>{u.campus || '-'}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={u.role === 'moderator' ? 'default' : 'secondary'}>
+                                                        {u.role}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>{new Date(u.created_at).toLocaleDateString()}</TableCell>
+                                                <TableCell className="text-right">
+                                                    {u.id === currentUserId ? (
+                                                        <span className="text-xs text-muted-foreground">You</span>
+                                                    ) : u.role === 'moderator' ? (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleRoleChange(u.id, 'user')}
+                                                        >
+                                                            Demote
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="default"
+                                                            onClick={() => handleRoleChange(u.id, 'moderator')}
+                                                        >
+                                                            Promote
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </Card>
