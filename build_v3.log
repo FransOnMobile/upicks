@@ -1,0 +1,60 @@
+
+> build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.7s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/24) ...
+  Generating static pages using 7 workers (6/24) 
+  Generating static pages using 7 workers (12/24) 
+Failed to generate dynamic sitemap: Error: Dynamic server usage: Route /sitemap.xml couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at E (.next/server/chunks/[root-of-the-server]__caaf520f._.js:5:31913)
+    at p (.next/server/chunks/_3f15a6ac._.js:1:10501)
+    at rg (.next/server/chunks/_3f15a6ac._.js:55:69)
+    at w (.next/server/chunks/[root-of-the-server]__8a255c71._.js:16:713)
+    at _ (.next/server/chunks/[root-of-the-server]__8a255c71._.js:16:1096) {
+  description: "Route /sitemap.xml couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+  Generating static pages using 7 workers (18/24) 
+✓ Generating static pages using 7 workers (24/24) in 174.9ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /about
+├ ƒ /auth/callback
+├ ƒ /campuses
+├ ƒ /community
+├ ƒ /contact
+├ ƒ /dashboard
+├ ƒ /dashboard/reset-password
+├ ƒ /dashboard/settings
+├ ƒ /email-confirmed
+├ ƒ /forgot-password
+├ ○ /manifest.webmanifest
+├ ƒ /moderator
+├ ƒ /onboarding
+├ ƒ /privacy
+├ ƒ /rate
+├ ƒ /rate/campus/[id]
+├ ƒ /rate/professor/[id]
+├ ○ /robots.txt
+├ ƒ /sign-in
+├ ƒ /sign-up
+├ ƒ /sitemap.xml
+└ ƒ /terms
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

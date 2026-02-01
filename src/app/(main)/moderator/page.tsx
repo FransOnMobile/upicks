@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users, Search } from 'lucide-react';
+import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users, Search, BookOpen } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,6 +50,12 @@ export default function ModeratorDashboard() {
     const [pendingDepartments, setPendingDepartments] = useState<any[]>([]);
     const [pendingCourses, setPendingCourses] = useState<any[]>([]);
     const [allUsers, setAllUsers] = useState<UserRecord[]>([]);
+    const [allProfessors, setAllProfessors] = useState<any[]>([]);
+    const [allCourses, setAllCourses] = useState<any[]>([]);
+    const [profSearchTerm, setProfSearchTerm] = useState('');
+    const [courseSearchTerm, setCourseSearchTerm] = useState('');
+    const [profPage, setProfPage] = useState(0);
+    const [coursePage, setCoursePage] = useState(0);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [userSearchTerm, setUserSearchTerm] = useState('');
     const [userPage, setUserPage] = useState(0);
@@ -84,7 +90,9 @@ export default function ModeratorDashboard() {
                 loadPendingProfessors(),
                 loadPendingDepartments(),
                 loadPendingCourses(),
-                loadUsers()
+                loadUsers(),
+                loadAllProfessors(),
+                loadAllCourses()
             ]);
             setIsLoading(false);
         };
@@ -98,6 +106,24 @@ export default function ModeratorDashboard() {
             .select('id, email, name, role, campus, created_at')
             .order('created_at', { ascending: false });
         if (data) setAllUsers(data);
+    };
+
+    const loadAllProfessors = async () => {
+        const { data } = await supabase
+            .from('professors')
+            .select('*, departments(name)')
+            .eq('is_verified', true)
+            .order('name');
+        if (data) setAllProfessors(data);
+    };
+
+    const loadAllCourses = async () => {
+        const { data } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('is_verified', true)
+            .order('code');
+        if (data) setAllCourses(data);
     };
 
     const handleRoleChange = async (userId: string, newRole: 'user' | 'moderator') => {
@@ -206,8 +232,8 @@ export default function ModeratorDashboard() {
         if (!error) {
             loadReports();
         } else {
-            console.error("Error updating report:", error);
-            alert("Failed to update report");
+            console.error("Error updating report:", error.message || JSON.stringify(error));
+            alert("Failed to update report: " + (error.message || "Unknown error - check console"));
         }
     };
 
@@ -271,6 +297,24 @@ export default function ModeratorDashboard() {
                 console.error(error);
                 alert("Failed to reject");
             }
+        }
+    };
+
+    const handleDeleteVerified = async (table: 'professors' | 'courses', id: string, name: string) => {
+        if (!confirm(`Are you sure you want to PERMANENTLY DELETE "${name}"?\n\nThis will remove all associated data (ratings, etc) if cascade delete is enabled, or fail if not. This cannot be undone.`)) return;
+
+        const { error } = await supabase
+            .from(table)
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error(`Error deleting ${table}:`, error);
+            alert(`Failed to delete: ${error.message}`);
+        } else {
+            alert(`${name} has been deleted.`);
+            if (table === 'professors') loadAllProfessors();
+            if (table === 'courses') loadAllCourses();
         }
     };
 
@@ -379,6 +423,8 @@ export default function ModeratorDashboard() {
                         <TabsTrigger value="pending-profs">Pending ({pendingProfessors.length + pendingDepartments.length + pendingCourses.length})</TabsTrigger>
                         <TabsTrigger value="pending">Reports ({pendingReports.length})</TabsTrigger>
                         <TabsTrigger value="history">Report History</TabsTrigger>
+                        <TabsTrigger value="manage-profs">Manage Professors</TabsTrigger>
+                        <TabsTrigger value="manage-courses">Manage Courses</TabsTrigger>
                         <TabsTrigger value="users">Users ({allUsers.length})</TabsTrigger>
                     </TabsList>
 
@@ -621,6 +667,197 @@ export default function ModeratorDashboard() {
                             </Table>
                         </Card>
                     </TabsContent>
+
+                    <TabsContent value="manage-profs" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <School className="h-5 w-5" />
+                                    Manage Verified Professors
+                                </CardTitle>
+                                <CardDescription>Search and delete existing professors.</CardDescription>
+                                <div className="relative mt-4">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search by name or department..."
+                                        value={profSearchTerm}
+                                        onChange={(e) => { setProfSearchTerm(e.target.value); setProfPage(0); }}
+                                        className="pl-10"
+                                    />
+                                </div>
+                            </CardHeader>
+                            {(() => {
+                                const filteredProfs = allProfessors.filter(p =>
+                                    p.name.toLowerCase().includes(profSearchTerm.toLowerCase()) ||
+                                    (p.departments?.name && p.departments.name.toLowerCase().includes(profSearchTerm.toLowerCase()))
+                                );
+                                const paginatedProfs = filteredProfs.slice(profPage * USERS_PER_PAGE, (profPage + 1) * USERS_PER_PAGE);
+                                const totalPages = Math.ceil(filteredProfs.length / USERS_PER_PAGE);
+
+                                return (
+                                    <>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Name</TableHead>
+                                                    <TableHead>Department</TableHead>
+                                                    <TableHead>Campus</TableHead>
+                                                    <TableHead className="text-right">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {paginatedProfs.length === 0 ? (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                                            {profSearchTerm ? 'No professors match your search.' : 'No verified professors found.'}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : (
+                                                    paginatedProfs.map((p) => (
+                                                        <TableRow key={p.id}>
+                                                            <TableCell className="font-medium">{p.name}</TableCell>
+                                                            <TableCell>{p.departments?.name || '-'}</TableCell>
+                                                            <TableCell>{p.campus || '-'}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="destructive"
+                                                                    onClick={() => handleDeleteVerified('professors', p.id, p.name)}
+                                                                >
+                                                                    Delete
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                        {totalPages > 1 && (
+                                            <div className="flex items-center justify-between px-4 py-3 border-t">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Showing {profPage * USERS_PER_PAGE + 1}-{Math.min((profPage + 1) * USERS_PER_PAGE, filteredProfs.length)} of {filteredProfs.length}
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={profPage === 0}
+                                                        onClick={() => setProfPage(p => p - 1)}
+                                                    >
+                                                        Previous
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={profPage >= totalPages - 1}
+                                                        onClick={() => setProfPage(p => p + 1)}
+                                                    >
+                                                        Next
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="manage-courses" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <BookOpen className="h-5 w-5" />
+                                    Manage Verified Courses
+                                </CardTitle>
+                                <CardDescription>Search and delete existing courses.</CardDescription>
+                                <div className="relative mt-4">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search by code or name..."
+                                        value={courseSearchTerm}
+                                        onChange={(e) => { setCourseSearchTerm(e.target.value); setCoursePage(0); }}
+                                        className="pl-10"
+                                    />
+                                </div>
+                            </CardHeader>
+                            {(() => {
+                                const filteredCourses = allCourses.filter(c =>
+                                    c.code.toLowerCase().includes(courseSearchTerm.toLowerCase()) ||
+                                    c.name.toLowerCase().includes(courseSearchTerm.toLowerCase())
+                                );
+                                const paginatedCourses = filteredCourses.slice(coursePage * USERS_PER_PAGE, (coursePage + 1) * USERS_PER_PAGE);
+                                const totalPages = Math.ceil(filteredCourses.length / USERS_PER_PAGE);
+
+                                return (
+                                    <>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Code</TableHead>
+                                                    <TableHead>Name</TableHead>
+                                                    <TableHead>Campus</TableHead>
+                                                    <TableHead className="text-right">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {paginatedCourses.length === 0 ? (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                                            {courseSearchTerm ? 'No courses match your search.' : 'No verified courses found.'}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : (
+                                                    paginatedCourses.map((c) => (
+                                                        <TableRow key={c.id}>
+                                                            <TableCell className="font-medium">{c.code}</TableCell>
+                                                            <TableCell>{c.name}</TableCell>
+                                                            <TableCell>{c.campus || '-'}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="destructive"
+                                                                    onClick={() => handleDeleteVerified('courses', c.id, c.code)}
+                                                                >
+                                                                    Delete
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                        {totalPages > 1 && (
+                                            <div className="flex items-center justify-between px-4 py-3 border-t">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Showing {coursePage * USERS_PER_PAGE + 1}-{Math.min((coursePage + 1) * USERS_PER_PAGE, filteredCourses.length)} of {filteredCourses.length}
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={coursePage === 0}
+                                                        onClick={() => setCoursePage(p => p - 1)}
+                                                    >
+                                                        Previous
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={coursePage >= totalPages - 1}
+                                                        onClick={() => setCoursePage(p => p + 1)}
+                                                    >
+                                                        Next
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
+                        </Card>
+                    </TabsContent>
+
                     <TabsContent value="users" className="mt-4">
                         <Card>
                             <CardHeader>

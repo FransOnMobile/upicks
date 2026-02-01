@@ -40,15 +40,20 @@ export interface ReviewDetails {
     safety_rating?: number | null;
     location_rating?: number | null;
     student_life_rating?: number | null;
+    tags?: string[] | null;
+    textbook_used?: boolean | null;
+    mandatory_attendance?: boolean | null;
+    grade?: string | null;
 }
 
 interface ReviewDetailsDialogProps {
     isOpen: boolean;
     onClose: () => void;
     review: ReviewDetails | null;
+    onUpvote?: (reviewId: string) => void;
 }
 
-export function ReviewDetailsDialog({ isOpen, onClose, review }: ReviewDetailsDialogProps) {
+export function ReviewDetailsDialog({ isOpen, onClose, review, onUpvote }: ReviewDetailsDialogProps) {
     if (!review) return null;
 
     const isCampus = review.rating_type === 'campus';
@@ -162,6 +167,22 @@ export function ReviewDetailsDialog({ isOpen, onClose, review }: ReviewDetailsDi
                         </div>
                     </div>
 
+                    {/* Tags & Badges Section (New) */}
+                    {(review.tags?.length || review.textbook_used) && (
+                        <div className="flex flex-wrap gap-2 pb-4 border-b border-border/40">
+                            {review.tags?.map((tag, i) => (
+                                <Badge key={i} variant="secondary" className="bg-secondary/50 text-secondary-foreground hover:bg-secondary/70 transition-colors">
+                                    {tag}
+                                </Badge>
+                            ))}
+                            {review.textbook_used && (
+                                <Badge variant="outline" className="border-primary/30 text-primary">
+                                    Textbook Required
+                                </Badge>
+                            )}
+                        </div>
+                    )}
+
                     {/* Detailed Ratings Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
                         <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium col-span-full mb-2">
@@ -192,7 +213,11 @@ export function ReviewDetailsDialog({ isOpen, onClose, review }: ReviewDetailsDi
                         <Button variant="outline" size="sm" className="flex-1 sm:flex-none gap-2" onClick={onClose}>
                             Close
                         </Button>
-                        <Button size="sm" className="flex-1 sm:flex-none gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                        <Button
+                            size="sm"
+                            onClick={() => review && onUpvote?.(review.id)}
+                            className="flex-1 sm:flex-none gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        >
                             <ThumbsUp className="w-4 h-4" />
                             Helpful ({review.helpful_count || 0})
                         </Button>

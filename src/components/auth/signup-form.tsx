@@ -63,9 +63,9 @@ export default function SignUpForm() {
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
-            <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm">
+            <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-lg">
                 <div className="space-y-2 text-center mb-6">
-                    <h1 className="text-3xl font-semibold tracking-tight">Sign up</h1>
+                    <h1 className="text-3xl font-bold font-playfair tracking-tight text-[#7b1113]">Sign up</h1>
                     <p className="text-sm text-muted-foreground">
                         Already have an account?{" "}
                         <Link

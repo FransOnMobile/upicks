@@ -171,7 +171,9 @@ function RatePageContent() {
             alert(`College/Department not found for campus (${campus}).`);
             return;
         }
-        const { error } = await supabase
+
+        // 1. Insert Professor
+        const { data: profData, error: profError } = await supabase
             .from('professors')
             .insert({
                 name,
@@ -180,14 +182,42 @@ function RatePageContent() {
                 is_verified: false,
                 submitted_by: user.id,
                 verification_notes: courseCode
-            });
+            })
+            .select()
+            .single();
 
-        if (error) {
-            console.error(error);
-            alert("Failed to add professor. " + error.message);
-        } else {
-            alert("Professor submitted for review! They will appear once verified.");
+        if (profError) {
+            console.error(profError);
+            alert("Failed to add professor. " + profError.message);
+            return;
         }
+
+        // 2. Check/Insert Course
+        if (courseCode) {
+            // Check if course exists for this campus (or is global/null, but we prefer specific)
+            const { data: existingCourses } = await supabase
+                .from('courses')
+                .select('id')
+                .eq('code', courseCode)
+                .or(`campus.eq.${campus},campus.is.null`);
+
+            if (!existingCourses || existingCourses.length === 0) {
+                // Insert new course
+                const { error: courseError } = await supabase
+                    .from('courses')
+                    .insert({
+                        code: courseCode,
+                        name: courseCode, // Use code as name for now since we only have one input
+                        campus: campus,
+                        is_verified: false,
+                        submitted_by: user.id
+                    });
+
+                if (courseError) console.error("Error auto-creating course:", courseError);
+            }
+        }
+
+        alert("Professor submitted for review! They will appear once verified.");
     };
 
     // Dynamic Header Title
@@ -303,9 +333,11 @@ function RatePageContent() {
                             }}
                         >
                             <option value="">All Departments</option>
-                            {departments.map(d => (
-                                <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
-                            ))}
+                            {departments
+                                .filter(d => !campus || d.campus === campus)
+                                .map(d => (
+                                    <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                                ))}
                         </select>
                     </div>
 

@@ -74,7 +74,7 @@ export function CampusRatingForm({ isOpen, onClose, campusId, campusName, onSubm
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-playfair font-bold text-[#7b1113]">Rate {campusName}</DialogTitle>
                     <DialogDescription>
-                        Share your experience to help future Iskoolars.
+                        Share your experience to help future Isko't Iska.
                     </DialogDescription>
                 </DialogHeader>
 

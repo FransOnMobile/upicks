@@ -26,6 +26,9 @@ export function CommunityFeed() {
     const [selectedCampus, setSelectedCampus] = useState<string | null>(null);
     const [page, setPage] = useState(0);
     const [selectedRating, setSelectedRating] = useState<ExtendedRating | null>(null);
+    const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
+    const [localVotes, setLocalVotes] = useState<Set<string>>(new Set());
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     const supabase = createClient();
 
@@ -38,6 +41,123 @@ export function CommunityFeed() {
         }
     }, [supabase]);
 
+    // Check Auth & Fetch User Votes
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const isAuth = !!session;
+            setIsAuthenticated(isAuth);
+
+            if (isAuth && session.user) {
+                const { data: votes } = await supabase
+                    .from('rating_votes')
+                    .select('rating_id')
+                    .eq('user_id', session.user.id);
+                if (votes) {
+                    setUserVotes(new Set(votes.map(v => v.rating_id)));
+                }
+            } else {
+                // Initial load of local votes checks happens on render/interaction usually, 
+                // or we can scan visible ratings. For performance we just check on demand or use a known prefix scan?
+                // We'll scan when ratings update.
+            }
+        };
+        checkAuth();
+    }, [supabase]);
+
+    // Scan for local votes when ratings change (for anonymous users)
+    useEffect(() => {
+        if (!isAuthenticated && ratings.length > 0) {
+            const local = new Set<string>();
+            ratings.forEach(r => {
+                const key = r.rating_type === 'professor'
+                    ? `upvoted_review_${r.id}`
+                    : `upvoted_campus_${r.id}`;
+                if (localStorage.getItem(key)) {
+                    local.add(r.id);
+                }
+            });
+            setLocalVotes(local);
+        }
+    }, [ratings, isAuthenticated]);
+
+    const handleUpvote = async (reviewId: string) => {
+        const review = ratings.find(r => r.id === reviewId);
+        if (!review) return;
+
+        // Optimistic Update Helper
+        const updateState = (delta: number, isVoted: boolean) => {
+            setRatings(prev => prev.map(r =>
+                r.id === reviewId ? { ...r, helpful_count: (r.helpful_count || 0) + delta } : r
+            ));
+
+            // Sync selected rating if open
+            if (selectedRating?.id === reviewId) {
+                setSelectedRating(prev => prev ? { ...prev, helpful_count: (prev.helpful_count || 0) + delta } : null);
+            }
+
+            if (isAuthenticated) {
+                setUserVotes(prev => {
+                    const newSet = new Set(prev);
+                    isVoted ? newSet.add(reviewId) : newSet.delete(reviewId);
+                    return newSet;
+                });
+            } else {
+                setLocalVotes(prev => {
+                    const newSet = new Set(prev);
+                    isVoted ? newSet.add(reviewId) : newSet.delete(reviewId);
+                    return newSet;
+                });
+            }
+        };
+
+        if (review.rating_type === 'professor') {
+            // Smart Vote Logic (Parity with Professor Page)
+            if (isAuthenticated) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return; // Should catch by state but safety check
+
+                const hasVoted = userVotes.has(reviewId);
+                if (hasVoted) {
+                    updateState(-1, false);
+                    await supabase.from('rating_votes').delete().match({ rating_id: reviewId, user_id: user.id });
+                    await supabase.from('ratings').update({ helpful_count: (review.helpful_count || 1) - 1 }).eq('id', reviewId);
+                } else {
+                    updateState(1, true);
+                    const { error } = await supabase.from('rating_votes').insert({ rating_id: reviewId, user_id: user.id });
+                    if (!error) {
+                        await supabase.from('ratings').update({ helpful_count: (review.helpful_count || 0) + 1 }).eq('id', reviewId);
+                    } else {
+                        updateState(-1, false); // Revert
+                    }
+                }
+            } else {
+                // Anon
+                const key = `upvoted_review_${reviewId}`;
+                const hasLocalVote = localStorage.getItem(key);
+                if (hasLocalVote) {
+                    localStorage.removeItem(key);
+                    updateState(-1, false);
+                    await supabase.from('ratings').update({ helpful_count: (review.helpful_count || 1) - 1 }).eq('id', reviewId);
+                } else {
+                    localStorage.setItem(key, 'true');
+                    updateState(1, true);
+                    await supabase.from('ratings').update({ helpful_count: (review.helpful_count || 0) + 1 }).eq('id', reviewId);
+                }
+            }
+        } else {
+            // Campus Rating (Simple Increment + Local Storage Debounce)
+            const key = `upvoted_campus_${reviewId}`;
+            if (localStorage.getItem(key)) return; // Prevent double vote locally
+
+            localStorage.setItem(key, 'true');
+            updateState(1, true);
+            await supabase
+                .from('campus_ratings')
+                .update({ helpful_count: (review.helpful_count || 0) + 1 })
+                .eq('id', reviewId);
+        }
+    };
     const fetchRatings = useCallback(async (isLoadMore = false) => {
         try {
             if (!isLoadMore) {
@@ -107,7 +227,11 @@ export function CommunityFeed() {
                     facilities_rating: r.facilities_rating,
                     safety_rating: r.safety_rating,
                     location_rating: r.location_rating,
-                    student_life_rating: r.student_life_rating
+                    student_life_rating: r.student_life_rating,
+                    tags: r.tags || [],
+                    textbook_used: r.textbook_used,
+                    mandatory_attendance: r.mandatory_attendance,
+                    grade: r.grade_received,
                 }));
 
                 if (isLoadMore) {
@@ -234,6 +358,7 @@ export function CommunityFeed() {
                 isOpen={!!selectedRating}
                 onClose={() => setSelectedRating(null)}
                 review={selectedRating}
+                onUpvote={(id) => handleUpvote(id)}
             />
         </div>
     );

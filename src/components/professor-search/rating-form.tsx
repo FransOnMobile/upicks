@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { AddCourseDialog } from './add-course-dialog';
 import { createClient } from "@/utils/supabase/client";
 
@@ -17,6 +18,7 @@ interface RatingFormProps {
   onClose: () => void;
   professorId: string;
   professorName: string;
+  professorCampus?: string; // Add this
   courses: Array<{ id: string; code: string; name: string }>;
   availableTags: Array<{ id: string; name: string }>;
   onSubmit: (data: {
@@ -40,10 +42,12 @@ export function RatingForm({
   onClose,
   professorId,
   professorName,
+  professorCampus,
   courses,
   availableTags,
-  onSubmit
-}: RatingFormProps) {
+  onSubmit,
+  ratedCourseIds = []
+}: RatingFormProps & { ratedCourseIds?: string[] }) {
   const [difficulty, setDifficulty] = useState(0);
   const [mandatoryAttendance, setMandatoryAttendance] = useState<boolean | null>(null);
   const [textbookUsed, setTextbookUsed] = useState<boolean | null>(null);
@@ -127,54 +131,64 @@ export function RatingForm({
         </DialogHeader>
         <div className="space-y-6 mt-4">
           {/* Step 1: Course Selection (Unchanged) */}
+
+
           {step === 1 && (
-            // ... existing step 1
             <div className="space-y-4">
               <div>
-                <Label className="text-base font-medium text-[#2d2540] mb-2 block">
-                  Select Course <span className="text-red-500 text-sm ml-1">(Required)</span>
-                </Label>
-                <Select value={courseId} onValueChange={setCourseId}>
-                  <SelectTrigger className="border-[rgba(100,80,140,0.12)] rounded-[4px]">
-                    <SelectValue placeholder="Choose a course..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {courses.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.code} - {course.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex justify-end mt-1">
+                <div className="flex justify-between items-baseline mb-2">
+                  <Label className="text-base font-medium text-[#2d2540]">
+                    Select Course <span className="text-red-500 text-sm ml-1">*</span>
+                  </Label>
                   <AddCourseDialog
-                    onAdd={async (name, code) => {
+                    defaultCampus={professorCampus}
+                    onAdd={async (name, code, campus) => {
                       const supabase = createClient();
                       const { data: { user } } = await supabase.auth.getUser();
                       if (!user) return;
                       const { error } = await supabase.from('courses').insert({
                         name,
                         code,
+                        campus: campus,
                         is_verified: false,
                         submitted_by: user.id,
                       });
                       if (error) {
-                        alert("Failed: " + error.message);
+                        if (error.code === '23505') {
+                          alert("This course already exists!");
+                        } else {
+                          alert("Failed: " + error.message);
+                        }
                       } else {
                         alert("Course submitted for review!");
                       }
                     }}
                     trigger={
-                      <div className="text-xs text-primary underline cursor-pointer hover:text-primary/80 pt-1 text-right">
-                        Course not listed? Add it here.
-                      </div>
+                      <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary/80 hover:text-primary">
+                        Can't find your course? Add it
+                      </Button>
                     }
                   />
                 </div>
+
+                <SearchableSelect
+                  items={courses.map(c => ({ value: c.id, label: `${c.code} - ${c.name}` }))}
+                  value={courseId}
+                  onSelect={setCourseId}
+                  placeholder="Type to search (e.g. CS 11)..."
+                  emptyLabel="Course not found."
+                  className="w-full"
+                />
+                {courseId && ratedCourseIds.includes(courseId) && (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded-md border border-red-100 flex items-center gap-2 mt-2">
+                    <X className="w-4 h-4" />
+                    You have already rated this professor for this course.
+                  </div>
+                )}
               </div>
               <Button
                 onClick={() => setStep(2)}
-                disabled={!courseId}
+                disabled={!courseId || ratedCourseIds.includes(courseId)}
                 className="w-full bg-[#800000] hover:bg-[#600000] text-white rounded-[4px] font-semibold"
               >
                 Continue
@@ -250,7 +264,7 @@ export function RatingForm({
                 </div>
                 <div>
                   <Label className="text-base font-medium text-[#2d2540] mb-2 block">
-                    Textbook Used <span className="text-muted-foreground text-sm font-normal ml-1">(Optional)</span>
+                    Textbook Required <span className="text-muted-foreground text-sm font-normal ml-1">(Optional)</span>
                   </Label>
                   <div className="flex gap-2">
                     <Button

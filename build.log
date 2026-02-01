@@ -1,0 +1,51 @@
+
+> build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./node_modules/react-remove-scroll/dist/es2015/UI.js:4:1
+Module not found: Can't resolve 'use-callback-ref'
+[0m [90m 2 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mReact[39m [36mfrom[39m [32m'react'[39m[33m;[39m
+ [90m 3 |[39m [36mimport[39m { fullWidthClassName[33m,[39m zeroRightClassName } [36mfrom[39m [32m'react-remove-scroll-bar/constants'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { useMergeRefs } [36mfrom[39m [32m'use-callback-ref'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 5 |[39m [36mimport[39m { effectCar } [36mfrom[39m [32m'./medium'[39m[33m;[39m
+ [90m 6 |[39m [36mvar[39m nothing [33m=[39m [36mfunction[39m () {
+ [90m 7 |[39m     [36mreturn[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/react-remove-scroll/dist/es2015/UI.js [Client Component Browser]
+    ./node_modules/react-remove-scroll/dist/es2015/Combination.js [Client Component Browser]
+    ./node_modules/@radix-ui/react-menu/dist/index.mjs [Client Component Browser]
+    ./node_modules/@radix-ui/react-dropdown-menu/dist/index.mjs [Client Component Browser]
+    ./src/components/ui/dropdown-menu.tsx [Client Component Browser]
+    ./src/components/user-profile.tsx [Client Component Browser]
+    ./src/components/user-profile.tsx [Server Component]
+    ./src/components/navbar.tsx [Server Component]
+    ./src/app/(main)/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/react-remove-scroll/dist/es2015/UI.js [Client Component SSR]
+    ./node_modules/react-remove-scroll/dist/es2015/Combination.js [Client Component SSR]
+    ./node_modules/@radix-ui/react-menu/dist/index.mjs [Client Component SSR]
+    ./node_modules/@radix-ui/react-dropdown-menu/dist/index.mjs [Client Component SSR]
+    ./src/components/ui/dropdown-menu.tsx [Client Component SSR]
+    ./src/components/user-profile.tsx [Client Component SSR]
+    ./src/components/user-profile.tsx [Server Component]
+    ./src/components/navbar.tsx [Server Component]
+    ./src/app/(main)/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

@@ -40,24 +40,7 @@ export default async function Navbar() {
 
         <div className="flex gap-4 items-center">
           {user ? (
-            <>
-              <Link
-                href="/dashboard"
-                className="hidden sm:block"
-              >
-                <Button variant="ghost" className="text-foreground/80 hover:text-primary">
-                  Dashboard
-                </Button>
-              </Link>
-              {user.user_metadata?.role === 'moderator' || (await (await supabase).from('users').select('role').eq('id', user.id).single()).data?.role === 'moderator' ? (
-                <Link href="/moderator" className="hidden sm:block">
-                  <Button variant="ghost" className="text-foreground/80 hover:text-destructive">
-                    Mod Panel
-                  </Button>
-                </Link>
-              ) : null}
-              <UserProfile />
-            </>
+            <UserProfile />
           ) : (
             <>
               <Link

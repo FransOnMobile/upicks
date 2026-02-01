@@ -29,17 +29,10 @@ export default async function Dashboard() {
   }
 
 
-  // Fetch recent ratings (Community)
+  // Fetch recent ratings (Unified Feed)
   const { data: recentRatings } = await supabase
-    .from("ratings")
-    .select(`
-      id,
-      overall_rating,
-      review_text,
-      created_at,
-      professors (name, department_id),
-      courses (code)
-    `)
+    .from("unified_ratings_feed")
+    .select('*')
     .order("created_at", { ascending: false })
     .limit(4);
 
@@ -51,7 +44,7 @@ export default async function Dashboard() {
         overall_rating,
         review_text,
         created_at,
-        professors (name)
+        professors (id, name)
     `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
@@ -69,10 +62,10 @@ export default async function Dashboard() {
         {/* Header Section */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <h1 className="text-3xl font-bold font-playfair text-foreground">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {user.user_metadata.full_name || user.email}</p>
           </div>
-          <Link href="/professors">
+          <Link href="/rate">
             <Button>Browse Professors</Button>
           </Link>
         </header>
@@ -140,29 +133,42 @@ export default async function Dashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {recentRatings && recentRatings.length > 0 ? (
-              recentRatings.map((rating: any) => (
-                <Card key={rating.id} className="flex flex-col h-full rounded-xl border-border/50 bg-card/60 backdrop-blur-sm hover:bg-card/90 transition-all hover:shadow-custom hover:-translate-y-1 duration-300 group">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-bold text-lg font-playfair line-clamp-1 group-hover:text-primary transition-colors">{rating.professors?.name}</h3>
-                      <div className="flex items-center bg-secondary/50 text-secondary-foreground text-xs font-bold px-2 py-1 rounded-md border border-secondary">
-                        <Star className="w-3 h-3 mr-1 fill-current" />
-                        {rating.overall_rating}
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{rating.courses?.code}</p>
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    <p className="text-sm text-foreground/80 line-clamp-3 italic font-serif leading-relaxed">
-                      "{rating.review_text || 'No comment provided.'}"
-                    </p>
-                  </CardContent>
-                </Card>
-              ))
+              recentRatings.map((rating: any) => {
+                const isProf = rating.rating_type === 'professor';
+                const href = isProf
+                  ? `/rate/professor/${rating.professor_id}`
+                  : `/rate/campus/${rating.campus_filter}`;
+
+                return (
+                  <Link key={rating.id} href={href} className="block h-full">
+                    <Card className="flex flex-col h-full rounded-xl border-border/50 bg-card/60 backdrop-blur-sm hover:bg-card/90 transition-all hover:shadow-custom hover:-translate-y-1 duration-300 group cursor-pointer">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-bold text-lg font-playfair line-clamp-1 group-hover:text-primary transition-colors">
+                            {rating.title}
+                          </h3>
+                          <div className="flex items-center bg-secondary/50 text-secondary-foreground text-xs font-bold px-2 py-1 rounded-md border border-secondary">
+                            <Star className="w-3 h-3 mr-1 fill-current" />
+                            {rating.overall_rating}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                          {isProf ? rating.course_code : (rating.campus_filter === 'diliman' ? 'UP Diliman' : 'Campus')}
+                        </p>
+                      </CardHeader>
+                      <CardContent className="flex-1">
+                        <p className="text-sm text-foreground/80 line-clamp-3 italic font-serif leading-relaxed">
+                          "{rating.review_text || 'No comment provided.'}"
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })
             ) : (
               <div className="col-span-full py-10 text-center border rounded-lg border-dashed bg-muted/20">
                 <p className="text-muted-foreground">No ratings yet. Be the first to rate a professor!</p>
-                <Link href="/professors">
+                <Link href="/rate">
                   <Button variant="link" className="mt-2">Rate a Professor</Button>
                 </Link>
               </div>
@@ -183,15 +189,17 @@ export default async function Dashboard() {
             <div className="space-y-4">
               {myProfRatings && myProfRatings.length > 0 ? (
                 myProfRatings.map((rating: any) => (
-                  <div key={rating.id} className="p-3 bg-background rounded-lg border border-border/50 flex justify-between items-start">
-                    <div>
-                      <div className="font-bold text-sm">{rating.professors?.name}</div>
-                      <p className="text-xs text-muted-foreground line-clamp-1 italic">"{rating.review_text}"</p>
+                  <Link key={rating.id} href={`/rate/professor/${rating.professors?.id}`} className="block">
+                    <div className="p-3 bg-background rounded-lg border border-border/50 flex justify-between items-start hover:border-primary/50 transition-colors cursor-pointer group">
+                      <div>
+                        <div className="font-bold text-sm group-hover:text-primary transition-colors">{rating.professors?.name}</div>
+                        <p className="text-xs text-muted-foreground line-clamp-1 italic">"{rating.review_text}"</p>
+                      </div>
+                      <div className="text-xs font-bold bg-secondary/30 px-2 py-1 rounded">
+                        {rating.overall_rating}/5
+                      </div>
                     </div>
-                    <div className="text-xs font-bold bg-secondary/30 px-2 py-1 rounded">
-                      {rating.overall_rating}/5
-                    </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground italic">You haven't rated any professors yet.</p>
@@ -208,15 +216,17 @@ export default async function Dashboard() {
             <div className="space-y-4">
               {myCampusRatings && myCampusRatings.length > 0 ? (
                 myCampusRatings.map((rating: any) => (
-                  <div key={rating.id} className="p-3 bg-background rounded-lg border border-border/50 flex justify-between items-start">
-                    <div>
-                      <div className="font-bold text-sm capitalize">{rating.campus_id.replace('-', ' ')}</div>
-                      <p className="text-xs text-muted-foreground line-clamp-1 italic">"{rating.review_text}"</p>
+                  <Link key={rating.id} href={`/rate/campus/${rating.campus_id}`} className="block">
+                    <div className="p-3 bg-background rounded-lg border border-border/50 flex justify-between items-start hover:border-primary/50 transition-colors cursor-pointer group">
+                      <div>
+                        <div className="font-bold text-sm capitalize group-hover:text-primary transition-colors">{rating.campus_id.replace('-', ' ')}</div>
+                        <p className="text-xs text-muted-foreground line-clamp-1 italic">"{rating.review_text}"</p>
+                      </div>
+                      <div className="text-xs font-bold bg-secondary/30 px-2 py-1 rounded">
+                        {rating.overall_rating}/5
+                      </div>
                     </div>
-                    <div className="text-xs font-bold bg-secondary/30 px-2 py-1 rounded">
-                      {rating.overall_rating}/5
-                    </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground italic">You haven't rated any campuses yet.</p>
@@ -236,7 +246,11 @@ export default async function Dashboard() {
                 <h2 className="font-semibold text-sm">My Profile</h2>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
-              <span className="text-xs font-mono text-muted-foreground/50">{user.id.slice(0, 8)}...</span>
+              <Link href="/dashboard/settings">
+                <Button variant="outline" size="sm" className="gap-2">
+                  Edit Profile
+                </Button>
+              </Link>
             </div>
           </div>
         </section>

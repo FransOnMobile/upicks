@@ -28,14 +28,16 @@ export async function GET(request: Request) {
       }
 
       // 2. Sync User to 'users' table
+      let needsOnboarding = false;
       try {
         const { data: existingUser } = await supabase
           .from("users")
-          .select("id")
+          .select("id, campus, degree_program, year_level")
           .eq("id", user.id)
           .single();
 
         if (!existingUser) {
+          // New user - create record and mark for onboarding
           const fullName = user.user_metadata.full_name || user.user_metadata.name || email.split("@")[0];
           
           await supabase.from("users").insert({
@@ -45,13 +47,20 @@ export async function GET(request: Request) {
             email: email,
             user_id: user.id,
             token_identifier: user.id,
-            // avatar_url: user.user_metadata.avatar_url, // Optional: add if we want avatar syncing
             created_at: new Date().toISOString(),
           });
+          needsOnboarding = true;
+        } else if (!existingUser.campus || !existingUser.degree_program || !existingUser.year_level) {
+          // Existing user but incomplete profile
+          needsOnboarding = true;
         }
       } catch (err) {
         console.error("Error syncing user profile:", err);
-        // We probably don't want to block login if sync fails, but it's good to log
+      }
+
+      // If user needs onboarding and no specific redirect, go to onboarding
+      if (needsOnboarding && !redirect_to) {
+        return NextResponse.redirect(new URL("/onboarding", origin));
       }
     }
   }

@@ -99,9 +99,24 @@ export function RatingCard({ rating, onClick }: RatingCardProps) {
             </CardHeader>
 
             <CardContent className="relative z-10 pb-5 px-6">
-                <p className="text-sm leading-relaxed text-foreground/80 line-clamp-4">
+                <p className="text-sm leading-relaxed text-foreground/80 line-clamp-4 mb-3">
                     {rating.review_text || <span className="italic text-muted-foreground">No written review.</span>}
                 </p>
+
+                {/* Footer Tags */}
+                <div className="flex flex-wrap gap-1.5">
+                    {rating.textbook_used && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 h-5 border-primary/20 text-primary">Textbook</Badge>
+                    )}
+                    {rating.tags?.slice(0, 2).map((tag, i) => (
+                        <Badge key={i} variant="secondary" className="text-[10px] px-1.5 h-5 bg-secondary/50 text-muted-foreground">
+                            {tag}
+                        </Badge>
+                    ))}
+                    {rating.tags && rating.tags.length > 2 && (
+                        <span className="text-[10px] text-muted-foreground ml-1">+{rating.tags.length - 2}</span>
+                    )}
+                </div>
             </CardContent>
         </Card>
     );

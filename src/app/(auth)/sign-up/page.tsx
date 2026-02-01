@@ -15,7 +15,6 @@ export default async function Signup(props: {
     <>
       <SignUpForm />
       {/* Simple way to show server errors for now if any redirect back */}
-      {/* Simple way to show server errors for now if any redirect back */}
       {searchParams && (
         <div className="fixed top-4 right-4 z-50">
           <div className="bg-destructive/15 text-destructive border border-destructive/50 p-4 rounded-md">

@@ -1,76 +1,67 @@
 import Link from 'next/link';
-import { Twitter, Linkedin, Github } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-50 border-t border-gray-100">
+    <footer className="bg-secondary/10 border-t border-border">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-          {/* Product Column */}
+          {/* Explore Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Product</h3>
+            <h3 className="font-semibold text-foreground mb-4">Explore</h3>
             <ul className="space-y-2">
-              <li><Link href="#features" className="text-gray-600 hover:text-blue-600">Features</Link></li>
-              <li><Link href="#pricing" className="text-gray-600 hover:text-blue-600">Pricing</Link></li>
-              <li><Link href="/dashboard" className="text-gray-600 hover:text-blue-600">Dashboard</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">API</Link></li>
+              <li><Link href="/rate" className="text-muted-foreground hover:text-[#7b1113] transition-colors">Find Professors</Link></li>
+              <li><Link href="/campuses" className="text-muted-foreground hover:text-[#7b1113] transition-colors">Rate Campuses</Link></li>
+              <li><Link href="/community" className="text-muted-foreground hover:text-[#7b1113] transition-colors">Community</Link></li>
+              <li><Link href="/dashboard" className="text-muted-foreground hover:text-[#7b1113] transition-colors">Dashboard</Link></li>
             </ul>
           </div>
 
-          {/* Company Column */}
+          {/* About Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
+            <h3 className="font-semibold text-foreground mb-4">About</h3>
             <ul className="space-y-2">
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">About</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Blog</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Careers</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Press</Link></li>
-            </ul>
-          </div>
-
-          {/* Resources Column */}
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Resources</h3>
-            <ul className="space-y-2">
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Documentation</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Help Center</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Community</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Status</Link></li>
+              <li><Link href="/about" className="text-muted-foreground hover:text-[#7b1113] transition-colors">About UPicks</Link></li>
+              <li><Link href="/contact" className="text-muted-foreground hover:text-[#7b1113] transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
           {/* Legal Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
+            <h3 className="font-semibold text-foreground mb-4">Legal</h3>
             <ul className="space-y-2">
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Privacy</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Terms</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Security</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Cookies</Link></li>
+              <li><Link href="/privacy" className="text-muted-foreground hover:text-[#7b1113] transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-muted-foreground hover:text-[#7b1113] transition-colors">Terms of Service</Link></li>
+            </ul>
+          </div>
+
+          {/* Campuses Column */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-4">UP System</h3>
+            <ul className="space-y-2 text-muted-foreground text-sm">
+              <li>UP Diliman</li>
+              <li>UP Los Baños</li>
+              <li>UP Manila</li>
+              <li>UP Visayas</li>
+              <li>UP Mindanao</li>
+              <li>+ 3 more</li>
             </ul>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-200">
-          <div className="text-gray-600 mb-4 md:mb-0">
-            © {currentYear} Your Company. All rights reserved.
+        <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-border">
+          <div className="flex items-center gap-2 mb-4 md:mb-0">
+            <GraduationCap className="w-5 h-5 text-[#7b1113]" />
+            <span className="font-playfair font-bold text-lg text-foreground">UPicks</span>
+            <span className="text-muted-foreground ml-4">
+              © {currentYear} UPicks. Built with ❤️ for the UP Community.
+            </span>
           </div>
-          
-          <div className="flex space-x-6">
-            <a href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">Twitter</span>
-              <Twitter className="h-6 w-6" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">LinkedIn</span>
-              <Linkedin className="h-6 w-6" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">GitHub</span>
-              <Github className="h-6 w-6" />
-            </a>
+
+          <div className="text-sm text-muted-foreground">
+            Not affiliated with the University of the Philippines.
           </div>
         </div>
       </div>
