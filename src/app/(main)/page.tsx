@@ -2,7 +2,7 @@
 
 
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { ArrowRight, GraduationCap, Building2, ShieldCheck, Users, Globe2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,13 @@ function HomeContent() {
             The anonymous, student-driven platform for the UP community. Find the best mentors and share your campus experiences.
           </p>
 
+          <div className="pt-12 flex items-center justify-center gap-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+            {/* Placeholder for "Trusted by students from" logos if desired, or simpler trust indicators */}
+            <div className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">
+              Trusted by at least 3 students across the UP System
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8">
             <Link href="/rate">
               <Button size="lg" className="h-16 px-10 text-xl font-bold bg-[#7b1113] hover:bg-[#901c1e] text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all rounded-2xl w-full sm:w-auto flex gap-3">
@@ -67,12 +74,9 @@ function HomeContent() {
             </Link>
           </div>
 
-          <div className="pt-12 flex items-center justify-center gap-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-            {/* Placeholder for "Trusted by students from" logos if desired, or simpler trust indicators */}
-            <div className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">
-              Trusted by thousands of students across the UP System
-            </div>
-          </div>
+          <p className="md:text-base text-muted-foreground/80 max-w-2xl mx-auto font-light leading-relaxed">
+            Note that UPicks is a student run public forum and is <span className="text-[#7b1113] opacity-90 font-semibold">not officially affiliated with the University of the Philippines System.</span>
+          </p>
         </div>
       </section>
 
@@ -143,9 +147,7 @@ function HomeContent() {
         </div>
         <p className="mb-6">© {new Date().getFullYear()} UPicks. Built with ❤️ for the UP Community.</p>
         <div className="flex justify-center gap-8">
-          <Link href="#" className="hover:text-[#7b1113] transition-colors font-medium">Privacy</Link>
-          <Link href="#" className="hover:text-[#7b1113] transition-colors font-medium">Terms</Link>
-          <Link href="#" className="hover:text-[#7b1113] transition-colors font-medium">Contact</Link>
+          <CodeOfConduct />
         </div>
       </footer>
     </main>
@@ -177,4 +179,41 @@ function FAQItem({ question, answer }: { question: string, answer: string }) {
       </AccordionContent>
     </AccordionItem>
   )
+}
+
+function CodeOfConduct() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="flex flex-col items-center w-full">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="hover:text-[#7b1113] transition-colors font-medium flex items-center gap-2"
+      >
+        Code of Conduct
+        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="mt-8 text-left max-w-2xl mx-auto bg-card border border-border/50 p-8 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+          <p className="mb-4 text-foreground/90">
+            The following are the code of conduct when using UPicks. Any review found in violation of the following will be removed.
+          </p>
+
+          <p className="mb-2 font-medium text-[#7b1113]">
+            Please refrain from the following:
+          </p>
+
+          <ul className="list-disc list-inside space-y-1 ml-4 text-muted-foreground">
+            <li>Sharing personal details such as addresses, phone numbers, and social media</li>
+            <li>Impolite comments about someone's appearance</li>
+            <li>Offensive language</li>
+            <li>Inappropriate content</li>
+            <li>Unfounded accusations</li>
+            <li>Personal attacks</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }

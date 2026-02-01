@@ -8,6 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Star, School, BookOpen, ThumbsUp, MessageSquare, ArrowLeft } from 'lucide-react';
 import { RatingForm } from '@/components/professor-search/rating-form';
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ProfessorDetailsPage() {
     const params = useParams();
@@ -19,6 +29,7 @@ export default function ProfessorDetailsPage() {
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showRatingForm, setShowRatingForm] = useState(false);
+    const [showConfirmRate, setShowConfirmRate] = useState(false);
     const [courses, setCourses] = useState<any[]>([]);
     const [tags, setTags] = useState<any[]>([]);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -407,7 +418,7 @@ export default function ProfessorDetailsPage() {
                             className="w-full mt-6 text-lg py-6 font-semibold shadow-lg"
                             onClick={() => {
                                 if (!isAuthenticated) router.push(`/sign-in?next=/rate/professor/${professorId}`);
-                                else setShowRatingForm(true);
+                                else setShowConfirmRate(true);
                             }}
                         >
                             Rate this Professor
@@ -505,6 +516,34 @@ export default function ProfessorDetailsPage() {
                 availableTags={tags}
                 onSubmit={handleRatingSubmit}
             />
+
+            <AlertDialog open={showConfirmRate} onOpenChange={setShowConfirmRate}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Reminders</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div>
+                                Please reframe from making any statements that could be seen as harassment.
+                                <br />
+                                Try to be as objective as possible and <span className="font-bold text-[#7b1113]">avoid the following:</span>
+                                <ul className="list-disc list-inside ml-7">
+                                    <li>Sharing personal information</li>
+                                    <li>Impolite comments about someone's appearance</li>
+                                    <li>Offensive language</li>
+                                    <li>Inappropriate content</li>
+                                    <li>Unfounded accusations</li>
+                                    <li>Personal attacks</li>
+                                </ul>
+                                Any review that violates these guidelines will be removed.
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => setShowRatingForm(true)}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
