@@ -132,7 +132,7 @@ export function RatingForm({
             <div className="space-y-4">
               <div>
                 <Label className="text-base font-medium text-[#2d2540] mb-2 block">
-                  Select Course
+                  Select Course <span className="text-red-500 text-sm ml-1">(Required)</span>
                 </Label>
                 <Select value={courseId} onValueChange={setCourseId}>
                   <SelectTrigger className="border-[rgba(100,80,140,0.12)] rounded-[4px]">
@@ -202,7 +202,10 @@ export function RatingForm({
               <RatingStars
                 value={difficulty}
                 onChange={setDifficulty}
-                label="Difficulty (1=Easy, 5=Hard)"
+                label="Difficulty"
+                minLabel="Very Easy"
+                maxLabel="Very Hard"
+                labels={['Very Easy', 'Easy', 'Average', 'Hard', 'Very Hard']}
               />
               <div className="flex gap-3 pt-2">
                 <Button
@@ -227,7 +230,9 @@ export function RatingForm({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-base font-medium text-[#2d2540] mb-2 block">Mandatory Attendance</Label>
+                  <Label className="text-base font-medium text-[#2d2540] mb-2 block">
+                    Mandatory Attendance <span className="text-muted-foreground text-sm font-normal ml-1">(Optional)</span>
+                  </Label>
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -244,7 +249,9 @@ export function RatingForm({
                   </div>
                 </div>
                 <div>
-                  <Label className="text-base font-medium text-[#2d2540] mb-2 block">Textbook Used</Label>
+                  <Label className="text-base font-medium text-[#2d2540] mb-2 block">
+                    Textbook Used <span className="text-muted-foreground text-sm font-normal ml-1">(Optional)</span>
+                  </Label>
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -262,7 +269,9 @@ export function RatingForm({
                 </div>
               </div>
               <div>
-                <Label className="text-base font-medium text-[#2d2540] mb-2 block">Grade Received</Label>
+                <Label className="text-base font-medium text-[#2d2540] mb-2 block">
+                  Grade Received <span className="text-muted-foreground text-sm font-normal ml-1">(Optional)</span>
+                </Label>
                 <Select value={gradeReceived} onValueChange={setGradeReceived}>
                   <SelectTrigger className="border-[rgba(100,80,140,0.12)] rounded-[4px]">
                     <SelectValue placeholder="Select Grade" />
@@ -403,23 +412,52 @@ export function RatingForm({
   );
 }
 
-function RatingStars({ value, onChange, label }: { value: number; onChange: (val: number) => void; label: string }) {
+function RatingStars({
+  value,
+  onChange,
+  label,
+  minLabel = "Terrible",
+  maxLabel = "Excellent",
+  labels = ['Terrible', 'Poor', 'Average', 'Good', 'Excellent']
+}: {
+  value: number;
+  onChange: (val: number) => void;
+  label: string;
+  minLabel?: string;
+  maxLabel?: string;
+  labels?: string[];
+}) {
   return (
-    <div className="space-y-2">
-      <Label className="text-base font-medium text-[#2d2540]">{label}</Label>
-      <div className="flex gap-1">
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <Label className="text-base font-medium text-[#2d2540]">
+          {label} <span className="text-red-500 text-sm ml-1">*</span>
+        </Label>
+        {value > 0 && (
+          <span className="text-sm font-medium text-[#800000]">
+            {labels[value - 1]}
+          </span>
+        )}
+      </div>
+      <div className="flex gap-2">
         {[1, 2, 3, 4, 5].map((rating) => (
           <button
             key={rating}
             type="button"
             onClick={() => onChange(rating)}
-            className="focus:outline-none transition-transform active:scale-95"
+            className="focus:outline-none group relative p-1"
           >
             <Star
-              className={`w-8 h-8 ${rating <= value ? 'fill-[#FFD700] text-[#FFD700]' : 'text-gray-300'}`}
+              className={`w-10 h-10 transition-all duration-200 ${rating <= value
+                ? 'fill-[#FFD700] text-[#FFD700] scale-105'
+                : 'text-gray-200 group-hover:text-gray-300'}`}
             />
           </button>
         ))}
+      </div>
+      <div className="flex justify-between text-xs text-muted-foreground px-1">
+        <span>{minLabel}</span>
+        <span>{maxLabel}</span>
       </div>
     </div>
   );

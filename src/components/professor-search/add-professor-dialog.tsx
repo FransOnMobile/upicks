@@ -25,8 +25,8 @@ import { AddDepartmentDialog } from './add-department-dialog';
 import { createClient } from "@/utils/supabase/client";
 
 interface AddProfessorDialogProps {
-    onAdd: (name: string, deptCode: string, courseCode: string) => Promise<void>;
-    departments: Array<{ id: string; name: string; code: string }>;
+    onAdd: (name: string, deptCode: string, courseCode: string, campus: string) => Promise<void>;
+    departments: Array<{ id: string; name: string; code: string; campus: string }>;
     trigger?: React.ReactNode;
     userCampus: string | null;
 }
@@ -37,13 +37,27 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
     const [deptCode, setDeptCode] = useState('');
     const [courseCode, setCourseCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedCampus, setSelectedCampus] = useState<string>(userCampus || '');
+
+    // Reset department if campus changes
+    const handleCampusChange = (val: string) => {
+        setSelectedCampus(val);
+        setDeptCode('');
+    };
+
+    const filteredDepartments = departments.filter(d => d.campus === selectedCampus);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !deptCode || !courseCode) return;
+        if (!name || !deptCode || !courseCode || !selectedCampus) return;
 
         setIsLoading(true);
-        await onAdd(name, deptCode, courseCode);
+        // We pass the name, deptCode, courseCode. The parent handles the rest. 
+        // Wait, the parent `onAdd` signature is (name, deptCode, courseCode). 
+        // I should probably pass the campus too, OR reliance on deptCode is enough if deptCode is unique? 
+        // Department codes might be duplicated across campuses (e.g. "College of Science").
+        // So I should pass campus.
+        await onAdd(name, deptCode, courseCode, selectedCampus);
         setIsLoading(false);
         setOpen(false);
         setName('');
@@ -66,12 +80,11 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                     <DialogTitle className="font-playfair text-2xl tracking-tight">Add New Professor</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
                         Can't find your professor? Add them to the list so you can rate them.
-                        This will be reviewed by our moderators.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-6 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="name" className="text-sm font-medium">Professor Name</Label>
+                        <Label htmlFor="name" className="text-sm font-medium">Professor Name <span className="text-red-500">*</span></Label>
                         <Input
                             id="name"
                             value={name}
@@ -81,14 +94,34 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                             required
                         />
                     </div>
+
                     <div className="grid gap-2">
-                        <Label htmlFor="department" className="text-sm font-medium">Department</Label>
-                        <Select value={deptCode} onValueChange={setDeptCode} required>
+                        <Label htmlFor="campus" className="text-sm font-medium">Campus <span className="text-red-500">*</span></Label>
+                        <Select value={selectedCampus} onValueChange={handleCampusChange} required>
                             <SelectTrigger className="rounded-lg bg-background/50 border-input/50 focus:ring-primary/20">
-                                <SelectValue placeholder="Select Department" />
+                                <SelectValue placeholder="Select Campus" />
                             </SelectTrigger>
                             <SelectContent className="max-h-[200px] rounded-xl">
-                                {departments.map((dept) => (
+                                <SelectItem value="diliman">UP Diliman</SelectItem>
+                                <SelectItem value="los-banos">UP Los Baños</SelectItem>
+                                <SelectItem value="manila">UP Manila</SelectItem>
+                                <SelectItem value="visayas">UP Visayas</SelectItem>
+                                <SelectItem value="baguio">UP Baguio</SelectItem>
+                                <SelectItem value="cebu">UP Cebu</SelectItem>
+                                <SelectItem value="mindanao">UP Mindanao</SelectItem>
+                                <SelectItem value="ou">UP Open University</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="department" className="text-sm font-medium">Department <span className="text-red-500">*</span></Label>
+                        <Select value={deptCode} onValueChange={setDeptCode} disabled={!selectedCampus} required>
+                            <SelectTrigger className="rounded-lg bg-background/50 border-input/50 focus:ring-primary/20">
+                                <SelectValue placeholder={!selectedCampus ? "Select Campus First" : "Select Department"} />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[200px] rounded-xl">
+                                {filteredDepartments.map((dept) => (
                                     <SelectItem key={dept.id} value={dept.code}>
                                         {dept.name} ({dept.code})
                                     </SelectItem>
@@ -98,8 +131,8 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                         <div className="flex justify-end mt-1">
                             <AddDepartmentDialog
                                 onAdd={async (name, code) => {
-                                    if (!userCampus) {
-                                        alert("You must complete your profile (set campus) before adding departments.");
+                                    if (!selectedCampus) {
+                                        alert("You must select a campus before adding departments.");
                                         return;
                                     }
                                     const supabase = createClient();
@@ -108,7 +141,7 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                                     const { error } = await supabase.from('departments').insert({
                                         name,
                                         code,
-                                        campus: userCampus,
+                                        campus: selectedCampus,
                                         is_verified: false,
                                         submitted_by: user.id
                                     });
@@ -122,7 +155,7 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                         </div>
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="course" className="text-sm font-medium">Course Taught</Label>
+                        <Label htmlFor="course" className="text-sm font-medium">Course Taught <span className="text-red-500">*</span></Label>
                         <Input
                             id="course"
                             value={courseCode}

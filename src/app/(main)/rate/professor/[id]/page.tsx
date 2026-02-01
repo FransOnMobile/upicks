@@ -71,13 +71,19 @@ export default function ProfessorDetailsPage() {
                 fairness: r.fairness,
                 clarity: r.clarity,
                 grade: r.grade_received,
-                attendance: r.mandatory_attendance ? 'Mandatory' : 'Optional'
+                attendance: r.mandatory_attendance ? 'Mandatory' : 'Optional',
+                would_take_again: r.would_take_again
             })) || [];
 
             // Calculate Aggregates
             const totalReviews = formattedReviews.length;
             const avgRating = totalReviews > 0
                 ? formattedReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+                : 0;
+
+            const wouldTakeAgainCount = formattedReviews.filter(r => r.would_take_again).length;
+            const wouldTakeAgainPercentage = totalReviews > 0
+                ? Math.round((wouldTakeAgainCount / totalReviews) * 100)
                 : 0;
 
             // Extract top tags
@@ -95,14 +101,40 @@ export default function ProfessorDetailsPage() {
                 department: profData.departments?.name,
                 overallRating: avgRating,
                 reviewCount: totalReviews,
-                topTags: topTags
+                topTags: topTags,
+                wouldTakeAgainPercentage
             });
 
             setReviews(formattedReviews);
 
             // Load Metadata for Form
             const { data: coursesData } = await supabase.from('courses').select('*').order('code');
-            const { data: tagsData } = await supabase.from('rating_tags').select('*');
+            let { data: tagsData } = await supabase.from('rating_tags').select('*');
+
+            // Seed tags if empty
+            if (!tagsData || tagsData.length === 0) {
+                const defaultTags = [
+                    { name: 'Inspirational', category: 'positive' },
+                    { name: 'Respected', category: 'positive' },
+                    { name: 'Accessible', category: 'positive' },
+                    { name: 'Clear Grading', category: 'positive' },
+                    { name: 'Engaging', category: 'positive' },
+                    { name: 'Gives Feedback', category: 'positive' },
+                    { name: 'Tough Grader', category: 'negative' },
+                    { name: 'Late Grader', category: 'negative' },
+                    { name: 'Monotone', category: 'negative' },
+                    { name: 'Heavy Workload', category: 'negative' },
+                    { name: 'Strict Attendance', category: 'negative' },
+                    { name: 'Pop Quizzes', category: 'neutral' }
+                ];
+
+                const { error: seedError } = await supabase.from('rating_tags').insert(defaultTags);
+                if (!seedError) {
+                    const { data: refreshedTags } = await supabase.from('rating_tags').select('*');
+                    tagsData = refreshedTags;
+                }
+            }
+
             if (coursesData) setCourses(coursesData);
             if (tagsData) setTags(tagsData);
 
@@ -367,7 +399,7 @@ export default function ProfessorDetailsPage() {
                             </div>
                             <div className="flex justify-between items-center py-2 border-b border-border/50">
                                 <span className="text-muted-foreground">Would Take Again</span>
-                                <span className="font-semibold">85%</span>
+                                <span className="font-semibold">{professor.wouldTakeAgainPercentage}%</span>
                             </div>
                         </div>
 

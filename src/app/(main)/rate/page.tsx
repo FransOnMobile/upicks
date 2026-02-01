@@ -153,26 +153,22 @@ function RatePageContent() {
     }, [professors, searchValue, campus, sortBy]);
 
 
-    const handleAddProfessor = async (name: string, deptCode: string, courseCode: string) => {
+    const handleAddProfessor = async (name: string, deptCode: string, courseCode: string, campus: string) => {
         if (!isAuthenticated) {
             router.push('/sign-in');
             return;
         }
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        const { data: profile } = await supabase.from('users').select('campus').eq('id', user.id).single();
-        const userCampus = profile?.campus;
-        if (!userCampus) {
-            alert("Please complete your profile first.");
-            return;
-        }
+
+        // Find department by code AND campus
         const dept = departments.find(d =>
             (d.code.toLowerCase() === deptCode.toLowerCase() || d.name.toLowerCase().includes(deptCode.toLowerCase())) &&
-            d.campus === userCampus
+            d.campus === campus
         );
 
         if (!dept) {
-            alert(`College/Department not found for your campus (${userCampus}). Please use a valid code (e.g. CS, CSSP).`);
+            alert(`College/Department not found for campus (${campus}).`);
             return;
         }
         const { error } = await supabase
@@ -180,7 +176,7 @@ function RatePageContent() {
             .insert({
                 name,
                 department_id: dept.id,
-                campus: userCampus,
+                campus: campus,
                 is_verified: false,
                 submitted_by: user.id,
                 verification_notes: courseCode
@@ -380,7 +376,7 @@ function RatePageContent() {
                                         <div className="mt-8">
                                             <AddProfessorDialog
                                                 onAdd={handleAddProfessor}
-                                                departments={departments.filter(d => d.campus === userCampus)}
+                                                departments={departments}
                                                 userCampus={userCampus}
                                                 trigger={
                                                     <Button variant="outline" className="mt-4">

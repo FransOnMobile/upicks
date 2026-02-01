@@ -57,7 +57,7 @@ export function AddCourseDialog({ onAdd, trigger }: AddCourseDialogProps) {
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-6 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="course-code" className="text-sm font-medium">Course Code</Label>
+                        <Label htmlFor="course-code" className="text-sm font-medium">Course Code <span className="text-red-500">*</span></Label>
                         <Input
                             id="course-code"
                             value={code}
@@ -68,7 +68,7 @@ export function AddCourseDialog({ onAdd, trigger }: AddCourseDialogProps) {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="course-name" className="text-sm font-medium">Course Title</Label>
+                        <Label htmlFor="course-name" className="text-sm font-medium">Course Title <span className="text-red-500">*</span></Label>
                         <Input
                             id="course-name"
                             value={name}
