@@ -122,6 +122,14 @@ export function SearchableSelect({
                 sideOffset={4}
                 // Match width to container
                 style={{ width: containerRef.current?.offsetWidth }}
+                // Allow pointer events for scrolling
+                onPointerDownOutside={(e) => {
+                    // Only close if clicking outside, not when scrolling
+                    const target = e.target as HTMLElement;
+                    if (target.closest('[cmdk-list]')) {
+                        e.preventDefault();
+                    }
+                }}
             >
                 <Command shouldFilter={false}>
                     {/* Hiding command input as we drive it externally */}
@@ -129,33 +137,45 @@ export function SearchableSelect({
                         <CommandInput value={inputValue} onValueChange={setInputValue} />
                     </div>
 
-                    <CommandList>
-                        {filteredItems.length === 0 && (
-                            <CommandEmpty>{emptyLabel}</CommandEmpty>
-                        )}
+                    <div
+                        className="max-h-[200px] overflow-y-auto overscroll-contain"
+                        onWheel={(e) => {
+                            // Stop wheel events from propagating to parent
+                            e.stopPropagation();
+                        }}
+                        onTouchMove={(e) => {
+                            // Stop touch scroll from propagating
+                            e.stopPropagation();
+                        }}
+                    >
+                        <CommandList>
+                            {filteredItems.length === 0 && (
+                                <CommandEmpty>{emptyLabel}</CommandEmpty>
+                            )}
 
-                        <CommandGroup className="max-h-[200px] overflow-auto">
-                            {filteredItems.slice(0, 50).map((item) => (
-                                <CommandItem
-                                    key={item.value}
-                                    value={item.label}
-                                    onSelect={() => {
-                                        onSelect(item.value);
-                                        setInputValue(item.label);
-                                        setOpen(false);
-                                    }}
-                                >
-                                    <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            value === item.value ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    {item.label}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
+                            <CommandGroup>
+                                {filteredItems.slice(0, 50).map((item) => (
+                                    <CommandItem
+                                        key={item.value}
+                                        value={item.label}
+                                        onSelect={() => {
+                                            onSelect(item.value);
+                                            setInputValue(item.label);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                value === item.value ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {item.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </div>
                 </Command>
             </PopoverContent>
         </Popover>
