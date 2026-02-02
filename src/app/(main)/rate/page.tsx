@@ -223,7 +223,19 @@ function RatePageContent() {
     // Dynamic Header Title
     const getHeaderTitle = () => {
         if (searchValue) return "Search Results";
-        if (campus) return `${campus.charAt(0).toUpperCase() + campus.slice(1).replace('-', ' ')} Professors`;
+
+        const CAMPUS_NAMES: Record<string, string> = {
+            'diliman': 'UP Diliman',
+            'los-banos': 'UP Los Baños',
+            'manila': 'UP Manila',
+            'visayas': 'UP Visayas',
+            'baguio': 'UP Baguio',
+            'cebu': 'UP Cebu',
+            'mindanao': 'UP Mindanao',
+            'ou': 'UP Open University'
+        };
+
+        if (campus) return `${CAMPUS_NAMES[campus] || campus} Professors`;
 
         switch (sortBy) {
             case 'rating_desc': return "Highest Rated Professors";
