@@ -183,6 +183,7 @@ export const completeOnboardingAction = async (formData: FormData) => {
   const studentNumber = formData.get("student_number")?.toString();
   const degreeParam = formData.get("degree_program")?.toString();
   const yearLevel = formData.get("year_level")?.toString();
+  const nickname = formData.get("nickname")?.toString();
   
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -202,6 +203,7 @@ export const completeOnboardingAction = async (formData: FormData) => {
       email: user.email,
       name: user.user_metadata?.full_name || '',
       full_name: user.user_metadata?.full_name || '',
+      nickname: nickname || null,
       user_id: user.id,
       token_identifier: user.id,
       campus,

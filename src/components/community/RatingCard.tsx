@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Star, School, User, GraduationCap, Building2 } from 'lucide-react';
+import { Star, School, User, GraduationCap, Building2, ShieldCheck } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -10,9 +10,12 @@ import { ReviewDetails } from './ReviewDetailsDialog';
 interface RatingCardProps {
     rating: ReviewDetails; // Use shared type
     onClick?: () => void;
+    onUserClick?: (userId: string, nickname: string) => void;
 }
 
-export function RatingCard({ rating, onClick }: RatingCardProps) {
+import { getAvatarColor } from "@/lib/avatar-utils";
+
+export function RatingCard({ rating, onClick, onUserClick }: RatingCardProps) {
     const isCampusRating = rating.rating_type === 'campus' || !rating.professors;
 
     // Format date
@@ -102,6 +105,47 @@ export function RatingCard({ rating, onClick }: RatingCardProps) {
                 <p className="text-sm leading-relaxed text-foreground/80 line-clamp-4 mb-3">
                     {rating.review_text || <span className="italic text-muted-foreground">No written review.</span>}
                 </p>
+
+                {/* Author Info */}
+                <div className="flex items-center gap-2 mb-3 pt-2 border-t border-white/5">
+                    <div
+                        onClick={(e) => {
+                            if (!rating.is_anonymous && rating.user_id && rating.nickname && onUserClick) {
+                                e.stopPropagation();
+                                onUserClick(rating.user_id, rating.nickname);
+                            }
+                        }}
+                        className={cn(
+                            "w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm",
+                            (!rating.is_anonymous && rating.nickname) ? getAvatarColor(rating.nickname) : "bg-muted text-muted-foreground",
+                            (!rating.is_anonymous && rating.nickname && onUserClick) ? "cursor-pointer hover:ring-2 hover:ring-primary/50" : ""
+                        )}
+                    >
+                        {(!rating.is_anonymous && rating.nickname) ? rating.nickname.charAt(0).toUpperCase() : <User className="w-3 h-3" />}
+                    </div>
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                        <span
+                            onClick={(e) => {
+                                if (!rating.is_anonymous && rating.user_id && rating.nickname && onUserClick) {
+                                    e.stopPropagation();
+                                    onUserClick(rating.user_id, rating.nickname);
+                                }
+                            }}
+                            className={cn(
+                                "text-xs font-medium truncate max-w-[120px]",
+                                (!rating.is_anonymous && rating.nickname) ? "text-foreground cursor-pointer hover:underline" : "text-muted-foreground"
+                            )}
+                        >
+                            {rating.is_anonymous ? 'Anonymous Student' : (rating.nickname || 'Verified Student')}
+                        </span>
+                        {!rating.is_anonymous && rating.nickname && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-green-500/10 text-green-600 border-green-500/20 gap-0.5">
+                                <ShieldCheck className="w-2.5 h-2.5" />
+                                Verified
+                            </Badge>
+                        )}
+                    </div>
+                </div>
 
                 {/* Footer Tags */}
                 <div className="flex flex-wrap gap-1.5">

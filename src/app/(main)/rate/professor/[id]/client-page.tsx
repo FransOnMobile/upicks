@@ -5,9 +5,19 @@ import { useRouter } from 'next/navigation';
 import { createClient } from "@/utils/supabase/client";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Star, School, BookOpen, ThumbsUp, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Star, School, BookOpen, ThumbsUp, MessageSquare, ArrowLeft, ShieldCheck, Scale, MapPin } from 'lucide-react';
 import { RatingForm } from '@/components/professor-search/rating-form';
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { getAvatarColor } from "@/lib/avatar-utils";
 
 interface ProfessorDetailsClientProps {
     professorId: string;
@@ -22,12 +32,15 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
     const [ratedCourseIds, setRatedCourseIds] = useState<string[]>([]);
     const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
     const [localVotes, setLocalVotes] = useState<Set<string>>(new Set());
+    const [votingMap, setVotingMap] = useState<Record<string, boolean>>({});
     const [isThinking, setIsThinking] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showRatingForm, setShowRatingForm] = useState(false);
     const [courses, setCourses] = useState<any[]>([]);
     const [tags, setTags] = useState<any[]>([]);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [sortBy, setSortBy] = useState('newest');
+    const [selectedReviewer, setSelectedReviewer] = useState<{ id: string, nickname: string } | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -81,7 +94,9 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                     courses (code, name),
                     rating_tag_associations (
                         rating_tags (name)
-                    )
+                    ),
+                    users (nickname),
+                    user_id
                 `)
                 .eq('professor_id', professorId)
                 .order('created_at', { ascending: false });
@@ -102,7 +117,10 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                 difficulty: r.difficulty, // Added difficulty mapping
                 grade: r.grade_received,
                 attendance: r.mandatory_attendance ? 'Mandatory' : 'Optional',
-                would_take_again: r.would_take_again
+                would_take_again: r.would_take_again,
+                nickname: r.users?.nickname || null,
+                user_id: r.user_id,
+                displayName: r.is_anonymous ? 'Anonymous Student' : (r.users?.nickname || 'Verified Student')
             })) || [];
 
             // Calculate Aggregates
@@ -142,6 +160,23 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                 .slice(0, 5) // Take top 5
                 .map(([name]) => name);
 
+            // Subject Stats
+            const subjectStatsMap: Record<string, { total: number, count: number }> = {};
+            formattedReviews.forEach(r => {
+                const code = r.course || 'Unknown';
+                if (!subjectStatsMap[code]) {
+                    subjectStatsMap[code] = { total: 0, count: 0 };
+                }
+                subjectStatsMap[code].total += r.rating;
+                subjectStatsMap[code].count += 1;
+            });
+
+            const subjectStats = Object.entries(subjectStatsMap).map(([code, data]) => ({
+                code,
+                rating: data.total / data.count,
+                count: data.count
+            })).sort((a, b) => b.count - a.count);
+
             setProfessor({
                 ...profData,
                 departments: profData.departments,
@@ -152,7 +187,8 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                 teachingQuality: avgTeaching,
                 fairness: avgFairness,
                 clarity: avgClarity,
-                topTags: topTags
+                topTags: topTags,
+                subjectStats
             });
 
             setReviews(formattedReviews);
@@ -234,10 +270,12 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
     }, [reviews, isAuthenticated]);
 
     const handleUpvote = async (reviewId: string) => {
-        // Optimistic Update Helper
+        if (votingMap[reviewId]) return; // Prevent spam
+        setVotingMap(prev => ({ ...prev, [reviewId]: true }));
+
         const updateState = (delta: number, isVoted: boolean) => {
             setReviews(prev => prev.map(r =>
-                r.id === reviewId ? { ...r, helpful_count: r.helpful_count + delta } : r
+                r.id === reviewId ? { ...r, helpful_count: Math.max(0, (r.helpful_count || 0) + delta) } : r
             ));
 
             if (isAuthenticated) {
@@ -255,66 +293,47 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
             }
         };
 
-        if (isAuthenticated) {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+        try {
+            if (isAuthenticated) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-            const hasVoted = userVotes.has(reviewId);
+                const hasVoted = userVotes.has(reviewId);
 
-            if (hasVoted) {
-                // Remove vote
-                updateState(-1, false);
-                await supabase.from('rating_votes').delete().match({ rating_id: reviewId, user_id: user.id });
-                await supabase.rpc('decrement_helpful_count', { row_id: reviewId }); // Ideally use RPC or update
-                // Fallback update since RPC might not exist
-                await supabase.from('ratings').update({ helpful_count: reviews.find(r => r.id === reviewId)!.helpful_count - 1 }).eq('id', reviewId);
-            } else {
-                // Add vote
-                updateState(1, true);
-                const { error } = await supabase.from('rating_votes').insert({ rating_id: reviewId, user_id: user.id });
-                if (!error) {
-                    await supabase.from('ratings').update({ helpful_count: reviews.find(r => r.id === reviewId)!.helpful_count + 1 }).eq('id', reviewId);
+                if (hasVoted) {
+                    // Remove vote
+                    updateState(-1, false);
+                    await supabase.from('rating_votes').delete().match({ rating_id: reviewId, user_id: user.id });
+                    await supabase.rpc('decrement_helpful_count', { row_id: reviewId });
                 } else {
-                    updateState(-1, false); // Revert
-                }
-            }
-        } else {
-            // Public / Anonymous user
-            // Use LocalStorage
-            const key = `upvoted_review_${reviewId}`;
-            const hasLocalVote = localStorage.getItem(key);
-
-            if (hasLocalVote) {
-                // Remove vote
-                localStorage.removeItem(key);
-                updateState(-1, false);
-                // We allow public to toggle, but we can't easily sync to DB consistently without auth.
-                // For now, let's just allow UPVOTE only for public to avoid complexity of reducing count?
-                // Or just implement simple toggle on DB side?
-                // Since public users are untrusted, we'll just optimistically update UI but NOT call DB to avoid spam?
-                // User said: "Public users can also like ratings but make sure they are unable to spam"
-                // Real implementation needs backend protection.
-                // For now: We will call DB update logic for public users, but rate limit?
-                // Actually, simpler: Public users just see local change. 
-                // Wait, persistent? No, user wants it to count.
-                // I will allow DB update for public users (increment only to avoid destructive spam?)
-                // Let's implement toggle for public too.
-
-                // Decrement DB
-                const current = reviews.find(r => r.id === reviewId);
-                if (current) {
-                    await supabase.from('ratings').update({ helpful_count: current.helpful_count - 1 }).eq('id', reviewId);
+                    // Add vote
+                    updateState(1, true);
+                    const { error } = await supabase.from('rating_votes').insert({ rating_id: reviewId, user_id: user.id });
+                    if (!error) {
+                        await supabase.rpc('increment_helpful_count', { row_id: reviewId });
+                    } else {
+                        updateState(-1, false); // Revert
+                    }
                 }
             } else {
-                localStorage.setItem(key, 'true');
-                updateState(1, true);
-                // Increment DB
-                // Need RPC for atomic increment ideally. I'll use simple update for now.
-                const current = reviews.find(r => r.id === reviewId);
-                if (current) {
-                    await supabase.from('ratings').update({ helpful_count: current.helpful_count + 1 }).eq('id', reviewId);
+                // Anonymous Flow
+                const key = `upvoted_review_${reviewId}`;
+                const hasLocalVote = localStorage.getItem(key);
+
+                if (hasLocalVote) {
+                    localStorage.removeItem(key);
+                    updateState(-1, false);
+                    await supabase.rpc('decrement_helpful_count', { row_id: reviewId });
+                } else {
+                    localStorage.setItem(key, 'true');
+                    updateState(1, true);
+                    await supabase.rpc('increment_helpful_count', { row_id: reviewId });
                 }
             }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setVotingMap(prev => ({ ...prev, [reviewId]: false }));
         }
     };
 
@@ -465,19 +484,24 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                         </div>
 
                         <div className="flex-1">
-                            <h1 className="text-4xl md:text-5xl font-bold font-playfair mb-2 tracking-tight">
+                            <h1 className="text-4xl md:text-5xl font-bold font-playfair mb-3 tracking-tight">
                                 {professor.name}
                             </h1>
                             <div className="flex flex-wrap items-center gap-4 text-white/80 text-lg mb-6">
-                                <span className="flex items-center gap-2">
-                                    <School className="w-5 h-5" />
+                                <span className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full text-sm">
+                                    <School className="w-4 h-4" />
                                     {professor.department}
                                 </span>
                                 {professor.campus && (
-                                    <span className="bg-white/10 px-3 py-1 rounded-full text-sm border border-white/20">
+                                    <span className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full text-sm border border-white/10">
+                                        <MapPin className="w-4 h-4" />
                                         {professor.campus}
                                     </span>
                                 )}
+                                <span className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-sm font-semibold">
+                                    <Star className="w-4 h-4 fill-white text-white" />
+                                    {professor.overallRating.toFixed(1)} / 5
+                                </span>
                             </div>
 
                             <div className="flex flex-wrap gap-2">
@@ -489,14 +513,20 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                             </div>
                         </div>
 
-                        <div className="text-right">
-                            <div className="flex items-end justify-end gap-2 mb-1">
-                                <span className="text-6xl font-black font-playfair">{professor.overallRating.toFixed(1)}</span>
-                                <span className="text-white/60 text-xl font-medium mb-2">/ 5.0</span>
-                            </div>
-                            <div className="text-white/80 font-medium">
-                                Based on {professor.reviewCount} reviews
-                            </div>
+                        <div className="text-right hidden md:block">
+                            <Button
+                                size="lg"
+                                className="bg-white text-[#7b1113] hover:bg-white/90 font-bold shadow-lg text-lg px-8"
+                                onClick={() => {
+                                    if (!isAuthenticated) router.push(`/sign-in?next=/rate/professor/${professorId}`);
+                                    else setShowRatingForm(true);
+                                }}
+                            >
+                                Rate {professor.name}
+                            </Button>
+                            {!isAuthenticated && (
+                                <p className="text-white/60 text-xs mt-2 text-center">Anonymous rating available</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -507,46 +537,66 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                 {/* Left Column: Stats & Actions */}
                 <div className="space-y-6">
                     <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                        <h3 className="text-lg font-bold font-playfair mb-4 flex items-center gap-2">
+                        <h3 className="text-lg font-bold font-playfair mb-6 flex items-center gap-2 pb-4 border-b border-border">
                             <BookOpen className="w-5 h-5 text-primary" />
                             Quick Stats
                         </h3>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                <span className="text-muted-foreground">Reviews</span>
-                                <span className="font-semibold">{professor.reviewCount}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                <span className="text-muted-foreground">Difficulty</span>
-                                <span className="font-semibold">{professor.reviewCount > 0 ? `${professor.difficulty.toFixed(1)} / 5` : 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                <span className="text-muted-foreground">Teaching Quality</span>
-                                <span className="font-semibold">{professor.reviewCount > 0 ? `${professor.teachingQuality.toFixed(1)} / 5` : 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                <span className="text-muted-foreground">Fairness</span>
-                                <span className="font-semibold">{professor.reviewCount > 0 ? `${professor.fairness.toFixed(1)} / 5` : 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                <span className="text-muted-foreground">Would Take Again</span>
-                                <span className="font-semibold">
-                                    {professor.reviewCount > 0 ? `${professor.wouldTakeAgainPercentage}%` : 'N/A'}
-                                </span>
+                        <div className="space-y-6">
+                            <RatingBar label="Difficulty" icon={<ShieldCheck className="w-4 h-4" />} value={professor.difficulty} inverse />
+                            <RatingBar label="Teaching" icon={<BookOpen className="w-4 h-4" />} value={professor.teachingQuality} />
+                            <RatingBar label="Fairness" icon={<Scale className="w-4 h-4" />} value={professor.fairness} />
+                            <RatingBar label="Clarity" icon={<MessageSquare className="w-4 h-4" />} value={professor.clarity} />
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-border">
+                            <div className="grid grid-cols-2 gap-4 text-center">
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <div className="text-2xl font-bold">{professor.reviewCount}</div>
+                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Ratings</div>
+                                </div>
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <div className="text-2xl font-bold">{professor.wouldTakeAgainPercentage}%</div>
+                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Take Again</div>
+                                </div>
                             </div>
                         </div>
 
                         <Button
-                            className="w-full mt-6 text-lg py-6 font-semibold shadow-lg"
+                            className="w-full mt-6 text-lg py-6 font-semibold shadow-lg md:hidden"
                             onClick={() => {
                                 if (!isAuthenticated) router.push(`/sign-in?next=/rate/professor/${professorId}`);
                                 else setShowRatingForm(true);
                             }}
-                        // Removed disabled check here to allow user to open form and see "already rated" status per course, 
-                        // OR we can disable if they rated all courses. But keeping it open is better UX.
                         >
                             Rate this Professor
                         </Button>
+                    </div>
+
+                    {/* Subjects Taught Card */}
+                    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                        <h3 className="text-lg font-bold font-playfair mb-4 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5 text-primary" />
+                            Subjects Taught
+                        </h3>
+                        {professor.subjectStats && professor.subjectStats.length > 0 ? (
+                            <div className="space-y-3">
+                                {professor.subjectStats.map((stat: any) => (
+                                    <div key={stat.code} className="flex justify-between items-center py-2 border-b border-border/50 last:border-0">
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold">{stat.code}</span>
+                                            <span className="text-xs text-muted-foreground">{stat.count} ratings</span>
+                                        </div>
+                                        <div className={`font-bold ${getRatingColor(stat.rating)}`}>
+                                            {stat.rating.toFixed(1)}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center text-muted-foreground text-sm py-4">
+                                No ratings recorded yet.
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -554,80 +604,35 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                 <div className="lg:col-span-2 space-y-6">
                     <div className="flex items-center justify-between mb-2">
                         <h2 className="text-2xl font-bold font-playfair">Student Reviews</h2>
-                        {/* Sort Dropdown could go here */}
+                        <select
+                            className="bg-card border border-border rounded-md text-sm p-2"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="highest">Highest Rated</option>
+                            <option value="lowest">Lowest Rated</option>
+                        </select>
                     </div>
 
                     {reviews.length > 0 ? (
-                        reviews.map((review) => (
-                            <div key={review.id} className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-xl font-playfair
-                                            ${review.rating >= 4 ? 'bg-green-600' : review.rating >= 2.5 ? 'bg-yellow-500' : 'bg-red-500'}`}>
-                                            {review.rating.toFixed(1)}
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-foreground">
-                                                {review.course}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground flex gap-2">
-                                                <span>{new Date(review.created_at).toLocaleDateString()}</span>
-                                                <span>•</span>
-                                                <span className={review.grade?.startsWith('1') ? 'text-green-600 font-medium' : ''}>
-                                                    Grade: {review.grade || 'N/A'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {!review.is_anonymous && (
-                                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                                            Verified Student
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex flex-wrap gap-2 mb-4">
-                                    {review.tags.map((tag: string, i: number) => (
-                                        <Badge key={i} variant="outline" className="text-xs font-normal">
-                                            {tag}
-                                        </Badge>
-                                    ))}
-                                    <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
-                                        Attendance: {review.attendance}
-                                    </Badge>
-                                    {review.textbook_used && (
-                                        <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
-                                            Textbook Required
-                                        </Badge>
-                                    )}
-                                </div>
-
-                                <p className="text-foreground/90 leading-relaxed text-sm md:text-base mb-6">
-                                    {review.reviewText}
-                                </p>
-
-                                <div className="flex items-center gap-4 pt-4 border-t border-border/50">
-                                    <button
-                                        onClick={() => handleUpvote(review.id)}
-                                        className={`flex items-center gap-2 text-sm transition-colors ${(isAuthenticated ? userVotes.has(review.id) : localVotes.has(review.id))
-                                            ? 'text-[#800000] font-medium' // Primary color when voted
-                                            : 'text-muted-foreground hover:text-foreground'
-                                            }`}
-                                    >
-                                        <ThumbsUp className={`w-4 h-4 ${(isAuthenticated ? userVotes.has(review.id) : localVotes.has(review.id)) ? 'fill-current' : ''}`} />
-                                        <span>Helpful ({review.helpful_count})</span>
-                                    </button>
-                                    <button
-                                        onClick={() => handleReport(review.id)}
-                                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors"
-                                    >
-                                        <MessageSquare className="w-4 h-4" />
-                                        <span>Report</span>
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                        reviews
+                            .sort((a, b) => {
+                                if (sortBy === 'highest') return b.rating - a.rating;
+                                if (sortBy === 'lowest') return a.rating - b.rating;
+                                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                            })
+                            .map((review) => (
+                                <ReviewCard
+                                    key={review.id}
+                                    review={review}
+                                    onUpvote={handleUpvote}
+                                    onReport={handleReport}
+                                    isHelpful={isAuthenticated ? userVotes.has(review.id) : localVotes.has(review.id)}
+                                    helpfulCount={review.helpful_count}
+                                    onUserClick={(id, nickname) => setSelectedReviewer({ id, nickname })}
+                                />
+                            ))
                     ) : (
                         <div className="text-center py-12 opacity-60 bg-muted/20 rounded-xl border border-dashed border-border">
                             <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -670,6 +675,297 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                 onSubmit={handleRatingSubmit}
                 ratedCourseIds={ratedCourseIds}
             />
-        </div>
+
+            <ReviewerProfileDialog
+                isOpen={!!selectedReviewer}
+                onClose={() => setSelectedReviewer(null)}
+                userId={selectedReviewer?.id || ''}
+                nickname={selectedReviewer?.nickname || ''}
+            />
+        </div >
     );
+}
+
+
+function ReviewerProfileDialog({ isOpen, onClose, userId, nickname }: { isOpen: boolean, onClose: () => void, userId: string, nickname: string }) {
+    const supabase = createClient();
+    const [stats, setStats] = useState<{ count: number, helpful: number } | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (isOpen && userId) {
+            setLoading(true);
+            const fetchStats = async () => {
+                // PRIVACY: Only fetch metrics for PUBLIC (non-anonymous) reviews.
+
+                // 1. Professor Ratings
+                const { count: profCount, error: profError } = await supabase
+                    .from('ratings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('is_anonymous', false);
+
+                const { data: profHelpful } = await supabase
+                    .from('ratings')
+                    .select('helpful_count')
+                    .eq('user_id', userId)
+                    .eq('is_anonymous', false);
+
+                // 2. Campus Ratings
+                const { count: campusCount, error: campusError } = await supabase
+                    .from('campus_ratings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('is_anonymous', false);
+
+                const { data: campusHelpful } = await supabase
+                    .from('campus_ratings')
+                    .select('helpful_count')
+                    .eq('user_id', userId)
+                    .eq('is_anonymous', false);
+
+                const totalCount = (profCount || 0) + (campusCount || 0);
+                const totalHelpful = (profHelpful?.reduce((acc, r) => acc + (r.helpful_count || 0), 0) || 0) +
+                    (campusHelpful?.reduce((acc, r) => acc + (r.helpful_count || 0), 0) || 0);
+
+                setStats({ count: totalCount, helpful: totalHelpful });
+                setLoading(false);
+            };
+            fetchStats();
+        }
+    }, [isOpen, userId]);
+
+    // Level calculation
+    const getLevel = (count: number) => {
+        if (count >= 50) return { title: "Dean's List", icon: <School className="w-4 h-4" /> };
+        if (count >= 20) return { title: "Senior Reviewer", icon: <BookOpen className="w-4 h-4" /> };
+        if (count >= 10) return { title: "Junior Reviewer", icon: <BookOpen className="w-4 h-4" /> };
+        if (count >= 5) return { title: "Sophomore Reviewer", icon: <BookOpen className="w-4 h-4" /> };
+        return { title: "Freshman Reviewer", icon: <BookOpen className="w-4 h-4" /> };
+    };
+
+    const level = stats ? getLevel(stats.count) : { title: "...", icon: null };
+    const avatarColor = getAvatarColor(nickname);
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-md bg-card border-border">
+                <DialogHeader>
+                    <div className="flex flex-col items-center gap-4 py-4">
+                        <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-4xl font-playfair shadow-xl ${avatarColor}`}>
+                            {nickname.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="text-center space-y-1">
+                            <DialogTitle className="text-2xl font-bold font-playfair">{nickname}</DialogTitle>
+                            <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground items-center gap-1">
+                                {level.icon}
+                                {level.title}
+                            </Badge>
+                        </div>
+                    </div>
+                </DialogHeader>
+
+                <div className="grid grid-cols-2 gap-4 py-8 px-4">
+                    <div className="bg-muted/30 p-4 rounded-xl text-center border border-border/50">
+                        <div className="text-3xl font-bold text-foreground mb-1">{loading ? "..." : stats?.count}</div>
+                        <div className="text-xs text-muted-foreground uppercase tracking-widest font-medium">Reviews</div>
+                    </div>
+                    <div className="bg-muted/30 p-4 rounded-xl text-center border border-border/50">
+                        <div className="text-3xl font-bold text-foreground mb-1 flex items-center justify-center gap-2">
+                            {loading ? "..." : stats?.helpful}
+                            <ThumbsUp className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <div className="text-xs text-muted-foreground uppercase tracking-widest font-medium">Helpful Votes</div>
+                    </div>
+                </div>
+
+                <DialogFooter className="sm:justify-center">
+                    <Button variant="outline" onClick={onClose} className="w-full">Close Profile</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function getRatingColor(rating: number, inverse = false) {
+    if (inverse) {
+        // For difficulty: 5 is "high difficulty" (red?), 1 is "easy" (green?)
+        if (rating >= 4) return 'text-red-500';
+        if (rating >= 2.5) return 'text-yellow-600';
+        return 'text-green-600';
+    }
+    if (rating >= 4) return 'text-green-600';
+    if (rating >= 2.5) return 'text-yellow-600';
+    return 'text-red-600';
+}
+
+function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUserClick }: { review: any, onUpvote: any, onReport: any, isHelpful: boolean, helpfulCount: number, onUserClick?: (id: string, nickname: string) => void }) {
+    const hasRealNickname = !review.is_anonymous && review.nickname;
+
+    const handleProfileClick = () => {
+        if (hasRealNickname && review.user_id && onUserClick) {
+            onUserClick(review.user_id, review.nickname);
+        }
+    };
+
+    return (
+        <div className="group bg-card hover:bg-muted/30 border border-border rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+            {/* Gradient accent */}
+            <div className={`absolute top-0 left-0 w-1 h-full transition-all duration-500
+                ${review.rating >= 4 ? 'bg-green-500' : review.rating >= 2.5 ? 'bg-yellow-500' : 'bg-red-500'}
+                opacity-50 group-hover:opacity-100`}></div>
+
+            <div className="flex justify-between items-start mb-4 pl-3">
+                <div className="flex items-center gap-4">
+                    <div
+                        onClick={handleProfileClick}
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl font-playfair shadow-md transition-transform group-hover:scale-110 duration-300
+                            ${hasRealNickname ? getAvatarColor(review.nickname) : review.rating >= 4 ? 'bg-green-600' : review.rating >= 2.5 ? 'bg-yellow-500' : 'bg-red-500'}
+                            ${hasRealNickname ? 'cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-primary/50' : ''}`}
+                    >
+                        {hasRealNickname ? review.nickname.charAt(0).toUpperCase() : review.rating.toFixed(1)}
+                    </div>
+                    <div>
+                        <div
+                            onClick={handleProfileClick}
+                            className={`font-bold text-foreground flex items-center gap-2 ${hasRealNickname ? 'cursor-pointer hover:underline decoration-dotted' : ''}`}
+                        >
+                            {review.displayName}
+                            {hasRealNickname && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-green-500/10 text-green-600 border-green-500/20 gap-1">
+                                    <ShieldCheck className="w-3 h-3" />
+                                    Verified
+                                </Badge>
+                            )}
+                        </div>
+                        <div className="text-xs text-muted-foreground flex gap-2 items-center flex-wrap">
+                            <span className="font-semibold text-foreground/80">{review.course || 'Unknown'}</span>
+                            <span>•</span>
+                            <span>{new Date(review.created_at).toLocaleDateString()}</span>
+                            {review.grade && (
+                                <>
+                                    <span>•</span>
+                                    <span className={review.grade.startsWith('1') ? 'text-green-600 font-medium' : ''}>
+                                        Grade: {review.grade}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Desktop Tags */}
+                {review.tags && review.tags.length > 0 && (
+                    <div className="hidden sm:flex flex-wrap gap-1 justify-end max-w-[200px]">
+                        {review.tags.slice(0, 3).map((tag: string) => (
+                            <Badge key={tag} variant="secondary" className="text-[10px] bg-secondary/70 hover:bg-secondary">
+                                {tag}
+                            </Badge>
+                        ))}
+                        {review.tags.length > 3 && (
+                            <Badge variant="outline" className="text-[10px]">+{review.tags.length - 3}</Badge>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg border border-border/50 pl-3">
+                <div className="flex flex-col gap-1 text-center border-r border-border/50 last:border-0">
+                    <span className="uppercase tracking-widest text-[10px]">Teaching</span>
+                    <span className={`font-bold text-sm ${getRatingColor(review.teaching_quality)}`}>{review.teaching_quality}</span>
+                </div>
+                <div className="flex flex-col gap-1 text-center border-r border-border/50 last:border-0">
+                    <span className="uppercase tracking-widest text-[10px]">Fairness</span>
+                    <span className={`font-bold text-sm ${getRatingColor(review.fairness)}`}>{review.fairness}</span>
+                </div>
+                <div className="flex flex-col gap-1 text-center border-r border-border/50 last:border-0">
+                    <span className="uppercase tracking-widest text-[10px]">Clarity</span>
+                    <span className={`font-bold text-sm ${getRatingColor(review.clarity)}`}>{review.clarity}</span>
+                </div>
+                <div className="flex flex-col gap-1 text-center">
+                    <span className="uppercase tracking-widest text-[10px]">Diff</span>
+                    <span className={`font-bold text-sm ${getRatingColor(review.difficulty, true)}`}>{review.difficulty}</span>
+                </div>
+            </div>
+
+            {/* Text content */}
+            <p className="text-foreground/90 leading-relaxed text-sm md:text-base mb-4 pl-3 whitespace-pre-wrap">
+                {review.reviewText}
+            </p>
+
+            {/* Metadata & Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border/50 pl-3">
+                <div className="flex gap-2">
+                    <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                        Attendance: {review.attendance}
+                    </Badge>
+                    {review.textbook_used && (
+                        <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                            Textbook Required
+                        </Badge>
+                    )}
+                    {/* Mobile tags fallback */}
+                    <div className="sm:hidden flex gap-1">
+                        {review.tags && review.tags.slice(0, 2).map((tag: string) => (
+                            <Badge key={tag} variant="secondary" className="text-[10px]">
+                                {tag}
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => onUpvote(review.id)}
+                        className={`flex items-center gap-2 text-sm transition-colors ${isHelpful
+                            ? 'text-[#800000] font-medium'
+                            : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                    >
+                        <ThumbsUp className={`w-4 h-4 ${isHelpful ? 'fill-current' : ''}`} />
+                        <span>Helpful ({helpfulCount})</span>
+                    </button>
+                    <button
+                        onClick={() => onReport(review.id)}
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Report</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function RatingBar({ label, icon, value, inverse = false }: { label: string, icon: any, value: number, inverse?: boolean }) {
+    return (
+        <div className="space-y-1">
+            <div className="flex justify-between text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    {icon}
+                    <span>{label}</span>
+                </div>
+                <span className="font-semibold">{value.toFixed(1)}</span>
+            </div>
+            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                <div
+                    className={`h-full rounded-full transition-all duration-1000 ${getRatingBarColor(value, inverse)}`}
+                    style={{ width: `${(value / 5) * 100}%` }}
+                />
+            </div>
+        </div>
+    )
+}
+
+function getRatingBarColor(rating: number, inverse: boolean) {
+    if (inverse) {
+        if (rating >= 4) return 'bg-red-500';
+        if (rating >= 2.5) return 'bg-yellow-500';
+        return 'bg-green-500';
+    }
+    if (rating >= 4) return 'bg-green-500';
+    if (rating >= 2.5) return 'bg-yellow-500';
+    return 'bg-red-500';
 }

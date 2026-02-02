@@ -32,10 +32,15 @@ SELECT
     NULL::numeric as facilities_rating,
     NULL::numeric as safety_rating,
     NULL::numeric as location_rating,
-    NULL::numeric as student_life_rating
+    NULL::numeric as student_life_rating,
+    -- User Info
+    r.user_id,
+    r.is_anonymous,
+    u.nickname
 FROM ratings r
 JOIN professors p ON r.professor_id = p.id
 LEFT JOIN courses c ON r.course_id = c.id
+LEFT JOIN users u ON r.user_id = u.id
 
 UNION ALL
 
@@ -51,6 +56,12 @@ SELECT
     CASE
         WHEN cr.campus_id = 'diliman' THEN 'UP Diliman'
         WHEN cr.campus_id = 'mindanao' THEN 'UP Mindanao'
+        WHEN cr.campus_id = 'manila' THEN 'UP Manila'
+        WHEN cr.campus_id = 'los-banos' THEN 'UP Los Baños'
+        WHEN cr.campus_id = 'visayas' THEN 'UP Visayas'
+        WHEN cr.campus_id = 'baguio' THEN 'UP Baguio'
+        WHEN cr.campus_id = 'cebu' THEN 'UP Cebu'
+        WHEN cr.campus_id = 'ou' THEN 'UP Open University'
         ELSE cr.campus_id
     END as title,
     NULL::text as course_code,
@@ -62,9 +73,19 @@ SELECT
     NULL::boolean as textbook_used,
     NULL::boolean as mandatory_attendance,
     NULL::text as grade_received,
-    NULL::text[] as tags,
+    (
+        SELECT array_agg(ct.name)
+        FROM campus_rating_tag_associations crta
+        JOIN campus_tags ct ON ct.id = crta.tag_id
+        WHERE crta.rating_id = cr.id
+    ) as tags,
     cr.facilities_rating,
     cr.safety_rating,
     cr.location_rating,
-    cr.student_life_rating
-FROM campus_ratings cr;
+    cr.student_life_rating,
+    -- User Info
+    cr.user_id,
+    cr.is_anonymous,
+    u.nickname
+FROM campus_ratings cr
+LEFT JOIN users u ON cr.user_id = u.id;

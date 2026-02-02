@@ -44,6 +44,10 @@ export interface ReviewDetails {
     textbook_used?: boolean | null;
     mandatory_attendance?: boolean | null;
     grade?: string | null;
+    // User fields
+    nickname?: string | null;
+    user_id?: string | null;
+    is_anonymous?: boolean | null;
 }
 
 interface ReviewDetailsDialogProps {
@@ -207,7 +211,7 @@ export function ReviewDetailsDialog({ isOpen, onClose, review, onUpvote }: Revie
 
                 <DialogFooter className="p-4 bg-muted/40 border-t border-border flex sm:justify-between items-center w-full gap-4">
                     <div className="text-xs text-muted-foreground italic flex-1 text-center sm:text-left">
-                        Posted by Anonymous Student
+                        Posted by {review.is_anonymous ? 'Anonymous Student' : (review.nickname || 'Verified Student')}
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
                         <Button variant="outline" size="sm" className="flex-1 sm:flex-none gap-2" onClick={onClose}>

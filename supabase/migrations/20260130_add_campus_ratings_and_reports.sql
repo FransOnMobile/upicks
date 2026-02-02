@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS public.campus_ratings (
     review_text TEXT,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
     is_anonymous BOOLEAN DEFAULT false,
-    helpful_count INTEGER DEFAULT 0
+    helpful_count INTEGER DEFAULT 0,
+    ip_hash TEXT -- Anonymized IP for rate limiting
 );
 
 -- 2. Create Reports Table

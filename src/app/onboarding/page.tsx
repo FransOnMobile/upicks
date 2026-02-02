@@ -29,6 +29,9 @@ export default async function OnboardingPage(props: {
         }
     }
 
+    // Fetch campuses from DB
+    const { data: campuses } = await supabase.from('campuses').select('slug, name').order('name');
+
     return (
         <div className="bg-card border border-border rounded-xl shadow-lg p-8">
             <div className="mb-8 text-center space-y-2">
@@ -40,6 +43,16 @@ export default async function OnboardingPage(props: {
 
             <form className="space-y-6">
                 <div className="space-y-2">
+                    <Label htmlFor="nickname">Nickname (Optional)</Label>
+                    <Input
+                        id="nickname"
+                        name="nickname"
+                        placeholder="What should we call you?"
+                    />
+                    <p className="text-xs text-muted-foreground">This will be displayed on your profile and reviews. <strong>Do not use your real name.</strong></p>
+                </div>
+
+                <div className="space-y-2">
                     <Label htmlFor="campus">Campus</Label>
                     <div className="relative">
                         <select
@@ -50,8 +63,22 @@ export default async function OnboardingPage(props: {
                             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
                         >
                             <option value="" disabled>Select your campus</option>
-                            <option value="diliman">UP Diliman</option>
-                            <option value="mindanao">UP Mindanao</option>
+                            {campuses && campuses.length > 0 ? (
+                                campuses.map((c) => (
+                                    <option key={c.slug} value={c.slug}>{c.name}</option>
+                                ))
+                            ) : (
+                                <>
+                                    <option value="diliman">UP Diliman</option>
+                                    <option value="mindanao">UP Mindanao</option>
+                                    <option value="manila">UP Manila</option>
+                                    <option value="los-banos">UP Los Baños</option>
+                                    <option value="visayas">UP Visayas</option>
+                                    <option value="baguio">UP Baguio</option>
+                                    <option value="cebu">UP Cebu</option>
+                                    <option value="open-university">UP Open University</option>
+                                </>
+                            )}
                         </select>
                         <svg
                             className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none"
@@ -104,7 +131,8 @@ export default async function OnboardingPage(props: {
                             <option value="3rd Year">3rd Year</option>
                             <option value="4th Year">4th Year</option>
                             <option value="5th Year">5th Year</option>
-                            <option value="Other">Other</option>
+                            <option value="Graduate">Graduate Student</option>
+                            <option value="Alumni">Alumni</option>
                         </select>
                         <svg
                             className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none"

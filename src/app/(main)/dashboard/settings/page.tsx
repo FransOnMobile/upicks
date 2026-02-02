@@ -54,6 +54,7 @@ export default function SettingsPage() {
 
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
+    const [nickname, setNickname] = useState('');
     const [campus, setCampus] = useState('');
     const [degreeProgram, setDegreeProgram] = useState('');
     const [yearLevel, setYearLevel] = useState('');
@@ -76,6 +77,7 @@ export default function SettingsPage() {
 
             if (profile) {
                 setName(profile.name || '');
+                setNickname(profile.nickname || '');
                 setCampus(profile.campus || '');
                 setDegreeProgram(profile.degree_program || '');
                 setYearLevel(profile.year_level || '');
@@ -98,6 +100,7 @@ export default function SettingsPage() {
             .from('users')
             .update({
                 name,
+                nickname,
                 campus,
                 degree_program: degreeProgram,
                 year_level: yearLevel,
@@ -192,8 +195,20 @@ export default function SettingsPage() {
                                     id="name"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    placeholder="Enter your name (optional)"
+                                    placeholder="Enter your name"
                                 />
+                                <p className="text-xs text-muted-foreground">This is your real/full name.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="nickname">Nickname (Optional)</Label>
+                                <Input
+                                    id="nickname"
+                                    value={nickname}
+                                    onChange={(e) => setNickname(e.target.value)}
+                                    placeholder="What should we call you?"
+                                />
+                                <p className="text-xs text-muted-foreground">This will be displayed on your profile and reviews. <strong>Do not use your real name.</strong></p>
                             </div>
                         </CardContent>
                     </Card>

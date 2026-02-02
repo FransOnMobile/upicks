@@ -13,31 +13,47 @@ import { createClient } from "@/utils/supabase/client"
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+import { getAvatarColor } from '@/lib/avatar-utils';
+import { cn } from '@/lib/utils';
+
 export default function UserProfile() {
     const supabase = createClient()
     const router = useRouter()
     const [isModerator, setIsModerator] = useState(false)
+    const [displayName, setDisplayName] = useState('')
+    const [nickname, setNickname] = useState('')
 
     useEffect(() => {
-        const checkModeratorStatus = async () => {
+        const checkUserStatus = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
                 const { data } = await supabase
                     .from('users')
-                    .select('role')
+                    .select('*')
                     .eq('id', user.id)
                     .single()
+                console.log("UserProfile fetch:", { user, data });
                 setIsModerator(data?.role === 'moderator')
+                setDisplayName(data?.nickname || data?.name || 'User')
+                setNickname(data?.nickname || 'User')
             }
         }
-        checkModeratorStatus()
+        checkUserStatus()
     }, [supabase])
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                    <UserCircle className="h-6 w-6" />
+                <Button variant="ghost" className="flex items-center gap-2 pl-0 hover:bg-transparent">
+                    <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm transition-transform hover:scale-105",
+                        getAvatarColor(nickname)
+                    )}>
+                        {nickname.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="hidden md:inline-block max-w-[100px] truncate text-sm font-medium">
+                        {displayName}
+                    </span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">

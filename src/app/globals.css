@@ -48,7 +48,7 @@
 
 @layer base {
   * {
-    @apply border-border transition-all duration-200 ease-in-out;
+    @apply border-border;
   }
 
   body {

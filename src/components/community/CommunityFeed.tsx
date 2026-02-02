@@ -9,6 +9,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from "sonner";
 
 import { ReviewDetailsDialog, ReviewDetails } from './ReviewDetailsDialog';
+import { ReviewerProfileDialog } from "@/components/reviewer-profile-dialog";
 
 // Use shared type or keep local if simpler, but syncing is key.
 // We will alias the one from Dialog for consistency.
@@ -26,6 +27,7 @@ export function CommunityFeed() {
     const [selectedCampus, setSelectedCampus] = useState<string | null>(null);
     const [page, setPage] = useState(0);
     const [selectedRating, setSelectedRating] = useState<ExtendedRating | null>(null);
+    const [selectedReviewer, setSelectedReviewer] = useState<{ id: string, nickname: string } | null>(null);
     const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
     const [localVotes, setLocalVotes] = useState<Set<string>>(new Set());
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -232,6 +234,10 @@ export function CommunityFeed() {
                     textbook_used: r.textbook_used,
                     mandatory_attendance: r.mandatory_attendance,
                     grade: r.grade_received,
+                    // User Mapping
+                    nickname: r.nickname,
+                    user_id: r.user_id,
+                    is_anonymous: r.is_anonymous,
                 }));
 
                 if (isLoadMore) {
@@ -317,6 +323,7 @@ export function CommunityFeed() {
                                 <RatingCard
                                     rating={rating}
                                     onClick={() => setSelectedRating(rating)}
+                                    onUserClick={(id, nickname) => setSelectedReviewer({ id, nickname })}
                                 />
                             </div>
                         ))}
@@ -359,6 +366,13 @@ export function CommunityFeed() {
                 onClose={() => setSelectedRating(null)}
                 review={selectedRating}
                 onUpvote={(id) => handleUpvote(id)}
+            />
+
+            <ReviewerProfileDialog
+                isOpen={!!selectedReviewer}
+                onClose={() => setSelectedReviewer(null)}
+                userId={selectedReviewer?.id || ''}
+                nickname={selectedReviewer?.nickname || ''}
             />
         </div>
     );
