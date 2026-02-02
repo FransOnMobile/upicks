@@ -386,7 +386,7 @@ function RatePageContent() {
                         </div>
                     ) : (
                         <>
-                            <div className="mb-8">
+                            <div className="mb-1">
                                 <h2 className="text-3xl font-bold font-playfair text-[#7b1113] relative inline-block">
                                     {getHeaderTitle()}
                                     <span className="absolute -bottom-2 left-0 w-1/3 h-1 bg-[#fbbf24] rounded-full"></span>
@@ -403,7 +403,23 @@ function RatePageContent() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-24 opacity-60">
+                                <div className="text-center py-3 opacity-60">
+
+
+
+                                    <div className="mt-8">
+                                        <AddProfessorDialog
+                                            onAdd={handleAddProfessor}
+                                            departments={departments}
+                                            userCampus={userCampus}
+                                            trigger={
+                                                <Button variant="outline" className="mt-4">
+                                                    Add Missing Professor
+                                                </Button>
+                                            }
+                                        />
+                                    </div>
+
                                     <div className="w-24 h-24 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-6">
                                         <Search className="w-10 h-10 text-muted-foreground" />
                                     </div>
@@ -415,21 +431,6 @@ function RatePageContent() {
                                             ? "We couldn't find any professor matching your search. Try different keywords or check the spelling."
                                             : "Enter a professor's name, department, or campus to get started."}
                                     </p>
-
-                                    {searchValue && (
-                                        <div className="mt-8">
-                                            <AddProfessorDialog
-                                                onAdd={handleAddProfessor}
-                                                departments={departments}
-                                                userCampus={userCampus}
-                                                trigger={
-                                                    <Button variant="outline" className="mt-4">
-                                                        Add Missing Professor
-                                                    </Button>
-                                                }
-                                            />
-                                        </div>
-                                    )}
                                 </div>
                             )}
                         </>
