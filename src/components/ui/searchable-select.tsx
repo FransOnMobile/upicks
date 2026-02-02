@@ -148,7 +148,7 @@ export function SearchableSelect({
                             e.stopPropagation();
                         }}
                     >
-                        <CommandList>
+                        <CommandList className="max-h-none overflow-visible">
                             {filteredItems.length === 0 && (
                                 <CommandEmpty>{emptyLabel}</CommandEmpty>
                             )}
