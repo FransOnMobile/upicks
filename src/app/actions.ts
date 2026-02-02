@@ -219,3 +219,72 @@ export const completeOnboardingAction = async (formData: FormData) => {
 
   return redirect("/dashboard");
 };
+
+export const submitNickname = async (formData: FormData) => {
+    const professorId = formData.get('professorId')?.toString();
+    const nickname = formData.get('nickname')?.toString();
+
+    if (!professorId || !nickname) {
+        return { error: "Missing required fields" };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { error: "You must be logged in to submit a nickname." };
+    }
+
+    // Server-side sanitization
+    // Simple regex since we can't easily import from lib/security in server actions usually depending on build setup
+    // But let's try to import or duplicate logic for safety.
+    const cleanNickname = String(nickname)
+        .replace(/[^a-zA-Z0-9\s\-_]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 50);
+
+    if (cleanNickname.length < 2) {
+        return { error: "Nickname is too short." };
+    }
+
+    // Rate Limiting: Check if user submitted for this professor recently (e.g., last 24 hours)
+    // Or globally (e.g., max 5 per hour). Let's do max 3 pending nicknames per user globally to stop spam.
+    const { count } = await supabase
+        .from('professor_nicknames')
+        .select('*', { count: 'exact', head: true })
+        .eq('submitted_by', user.id)
+        .eq('status', 'pending');
+
+    if (count !== null && count >= 5) {
+        return { error: "You have too many pending nickname submissions. Please wait for them to be reviewed." };
+    }
+
+    // Check for duplicates
+    const { data: existing } = await supabase
+        .from('professor_nicknames')
+        .select('id')
+        .eq('professor_id', professorId)
+        .ilike('nickname', cleanNickname) // Case insensitive check
+        .single();
+
+    if (existing) {
+        return { error: "This nickname already exists or is pending." };
+    }
+
+    const { error } = await supabase
+        .from('professor_nicknames')
+        .insert({
+            professor_id: professorId,
+            nickname: cleanNickname,
+            submitted_by: user.id,
+            status: 'pending'
+        });
+
+    if (error) {
+        console.error("Nickname submission error:", error);
+        return { error: "Failed to submit nickname. It may already exist." };
+    }
+
+    return { success: "Nickname submitted for review!" };
+};

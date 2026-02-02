@@ -13,6 +13,7 @@ export interface Professor {
     topTags: string[];
     recentReview?: string;
     campus?: string;
+    nicknames?: string[];
 }
 
 import Link from 'next/link';
@@ -55,6 +56,16 @@ export function ProfessorListItem({ professor }: ProfessorListItemProps) {
                                         </>
                                     )}
                                 </div>
+                                {professor.nicknames && professor.nicknames.length > 0 && (
+                                    <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                                        {professor.nicknames.map((nick, i) => (
+                                            <span key={i} className="text-xs text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                                <span className="opacity-50 text-[10px]">aka</span>
+                                                {nick}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex items-center gap-4 bg-muted/20 px-4 py-2 rounded-xl self-start border border-border/50">

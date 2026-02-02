@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { getAvatarColor } from "@/lib/avatar-utils";
+import { ProfessorNicknames } from "@/components/professor-nicknames";
 
 interface ProfessorDetailsClientProps {
     professorId: string;
@@ -510,6 +511,16 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                                         {tag}
                                     </span>
                                 ))}
+                            </div>
+
+                            {/* Professor Nicknames */}
+                            <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                                <ProfessorNicknames
+                                    professorId={professorId}
+                                    professorName={professor.name}
+                                    isAuthenticated={isAuthenticated}
+                                    className="[&_.text-muted-foreground]:text-white/60 [&_.text-primary]:text-white [&_button]:text-white/80 [&_button:hover]:text-white [&_span]:text-white/90"
+                                />
                             </div>
                         </div>
 

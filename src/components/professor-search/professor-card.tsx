@@ -13,6 +13,7 @@ export interface Professor {
   topTags: string[];
   recentReview?: string;
   campus?: string;
+  nicknames?: string[];
 }
 
 interface ProfessorCardProps {

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users, Search, BookOpen, CheckCheck, Filter } from 'lucide-react';
+import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users, Search, BookOpen, CheckCheck, Filter, Tag } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -72,9 +72,11 @@ export default function ModeratorDashboard() {
     const [selectedProfIds, setSelectedProfIds] = useState<Set<string>>(new Set());
     const [selectedDeptIds, setSelectedDeptIds] = useState<Set<string>>(new Set());
     const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
-    const [pendingFilter, setPendingFilter] = useState<'all' | 'professors' | 'departments' | 'courses'>('all');
+    const [selectedNicknameIds, setSelectedNicknameIds] = useState<Set<string>>(new Set());
+    const [pendingFilter, setPendingFilter] = useState<'all' | 'professors' | 'departments' | 'courses' | 'nicknames'>('all');
     const [pendingSort, setPendingSort] = useState<'newest' | 'oldest'>('newest');
     const [pendingSearchTerm, setPendingSearchTerm] = useState('');
+    const [pendingNicknames, setPendingNicknames] = useState<any[]>([]);
 
     const supabase = createClient();
     const router = useRouter();
@@ -107,6 +109,7 @@ export default function ModeratorDashboard() {
                 loadPendingProfessors(),
                 loadPendingDepartments(),
                 loadPendingCourses(),
+                loadPendingNicknames(),
                 loadUsers(),
                 loadAllProfessors(),
                 loadAllCourses()
@@ -231,6 +234,62 @@ export default function ModeratorDashboard() {
             .eq('is_verified', false)
             .order('created_at', { ascending: false });
         if (data) setPendingCourses(data);
+    };
+
+    const loadPendingNicknames = async () => {
+        const { data } = await supabase
+            .from('professor_nicknames')
+            .select(`
+                *,
+                professors (id, name),
+                users:submitted_by (email, name)
+            `)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+        if (data) setPendingNicknames(data);
+    };
+
+    const handleNicknameAction = async (nicknameId: string, action: 'approve' | 'reject') => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+            .from('professor_nicknames')
+            .update({
+                status: action === 'approve' ? 'approved' : 'rejected',
+                reviewed_by: user.id,
+                reviewed_at: new Date().toISOString()
+            })
+            .eq('id', nicknameId);
+
+        if (!error) {
+            await loadPendingNicknames();
+            setSelectedNicknameIds(prev => {
+                const next = new Set(prev);
+                next.delete(nicknameId);
+                return next;
+            });
+        }
+    };
+
+    const handleBulkNicknameAction = async (action: 'approve' | 'reject') => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || selectedNicknameIds.size === 0) return;
+
+        const idsArray = Array.from(selectedNicknameIds);
+        for (const id of idsArray) {
+            await supabase
+                .from('professor_nicknames')
+                .update({
+                    status: action === 'approve' ? 'approved' : 'rejected',
+                    reviewed_by: user.id,
+                    reviewed_at: new Date().toISOString()
+                })
+                .eq('id', id);
+        }
+
+        await loadPendingNicknames();
+        setSelectedNicknameIds(new Set());
     };
 
     const handleAction = async (reportId: string, action: 'resolve' | 'dismiss') => {
@@ -741,6 +800,91 @@ export default function ModeratorDashboard() {
                                                     <TableCell className="text-right space-x-2">
                                                         <Button size="sm" variant="destructive" onClick={() => handleApprovalAction('courses', course.id, 'reject')}>Reject</Button>
                                                         <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprovalAction('courses', course.id, 'approve')}>Approve</Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </Card>
+
+                        {/* Pending Nicknames */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <Tag className="h-4 w-4" />
+                                        Pending Nicknames ({pendingNicknames.length})
+                                    </CardTitle>
+                                    {selectedNicknameIds.size > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground">{selectedNicknameIds.size} selected</span>
+                                            <Button size="sm" variant="outline" onClick={() => clearSelection(setSelectedNicknameIds)}>Clear</Button>
+                                            <Button size="sm" variant="destructive" onClick={() => handleBulkNicknameAction('reject')}>Reject All</Button>
+                                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkNicknameAction('approve')}>
+                                                <CheckCheck className="w-4 h-4 mr-1" /> Approve All
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-10">
+                                            <Checkbox
+                                                checked={pendingNicknames.length > 0 && selectedNicknameIds.size === pendingNicknames.length}
+                                                onCheckedChange={(checked) => checked ? selectAll(pendingNicknames, setSelectedNicknameIds) : clearSelection(setSelectedNicknameIds)}
+                                            />
+                                        </TableHead>
+                                        <TableHead>Nickname</TableHead>
+                                        <TableHead>Professor</TableHead>
+                                        <TableHead>Submitted By</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {pendingNicknames.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                                No pending nicknames to review.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        pendingNicknames
+                                            .filter(n =>
+                                                n.nickname.toLowerCase().includes(pendingSearchTerm.toLowerCase()) ||
+                                                n.professors?.name?.toLowerCase().includes(pendingSearchTerm.toLowerCase())
+                                            )
+                                            .sort((a, b) => pendingSort === 'newest'
+                                                ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                                                : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                                            )
+                                            .map((nickname) => (
+                                                <TableRow key={nickname.id} className={selectedNicknameIds.has(nickname.id) ? 'bg-muted/50' : ''}>
+                                                    <TableCell>
+                                                        <Checkbox checked={selectedNicknameIds.has(nickname.id)} onCheckedChange={() => toggleSelection(nickname.id, setSelectedNicknameIds)} />
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">
+                                                        <Badge variant="secondary" className="text-sm">{nickname.nickname}</Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <a
+                                                            href={`/rate/professor/${nickname.professors?.id}`}
+                                                            target="_blank"
+                                                            className="text-primary hover:underline"
+                                                        >
+                                                            {nickname.professors?.name || 'Unknown'}
+                                                        </a>
+                                                    </TableCell>
+                                                    <TableCell className="text-sm text-muted-foreground">
+                                                        {nickname.users?.email || 'Anonymous'}
+                                                    </TableCell>
+                                                    <TableCell className="text-sm">{new Date(nickname.created_at).toLocaleDateString()}</TableCell>
+                                                    <TableCell className="text-right space-x-2">
+                                                        <Button size="sm" variant="destructive" onClick={() => handleNicknameAction(nickname.id, 'reject')}>Reject</Button>
+                                                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleNicknameAction(nickname.id, 'approve')}>Approve</Button>
                                                     </TableCell>
                                                 </TableRow>
                                             ))

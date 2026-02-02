@@ -52,15 +52,15 @@ function RatePageContent() {
                 const { data: deps } = await supabase.from('departments').select('*').order('name');
                 if (deps) setDepartments(deps);
 
-                // Fetch Professors with Departments
+                // Fetch Professors from View (includes nicknames and departments)
                 const { data: profs, error: profsError } = await supabase
-                    .from('professors')
-                    .select('*, departments(id, name, code)');
+                    .from('professor_search_view')
+                    .select('*')
+                    .order('name');
 
                 if (profsError) throw profsError;
 
                 // Fetch All Ratings (for client-side aggregation)
-                // Note: For larger datasets, this should be done via a view or RPC
                 const { data: ratings, error: ratingsError } = await supabase
                     .from('ratings')
                     .select('*, rating_tag_associations(rating_tags(name))');
@@ -97,13 +97,14 @@ function RatePageContent() {
                     return {
                         id: p.id,
                         name: p.name,
-                        department: p.departments?.name || 'Unknown Department',
+                        department: p.department_name || 'Unknown Department',
                         departmentId: p.department_id,
                         overallRating: avgRating,
                         reviewCount: totalRatings,
                         topTags: topTags,
                         recentReview: recentReview,
-                        campus: p.campus
+                        campus: p.campus || undefined,
+                        nicknames: p.nicknames || []
                     };
                 }) || [];
 
@@ -123,9 +124,11 @@ function RatePageContent() {
         let filtered = professors;
 
         if (searchValue) {
+            const searchLower = searchValue.toLowerCase();
             filtered = filtered.filter(p =>
-                p.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-                p.department.toLowerCase().includes(searchValue.toLowerCase())
+                p.name.toLowerCase().includes(searchLower) ||
+                p.department.toLowerCase().includes(searchLower) ||
+                (p.nicknames && p.nicknames.some((nick: string) => nick.toLowerCase().includes(searchLower)))
             );
         }
 
