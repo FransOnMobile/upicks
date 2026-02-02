@@ -389,7 +389,7 @@ function RatePageContent() {
                         </div>
                     ) : (
                         <>
-                            <div className="mb-1">
+                            <div className="mb-8 relative z-30">
                                 <h2 className="text-3xl font-bold font-playfair text-[#7b1113] relative inline-block">
                                     {getHeaderTitle()}
                                     <span className="absolute -bottom-2 left-0 w-1/3 h-1 bg-[#fbbf24] rounded-full"></span>
