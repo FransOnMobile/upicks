@@ -7,9 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users, Search, BookOpen } from 'lucide-react';
+import { ShieldAlert, CheckCircle, XCircle, Clock, School, Trash2, Users, Search, BookOpen, CheckCheck, Filter } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     Table,
     TableBody,
@@ -59,6 +67,15 @@ export default function ModeratorDashboard() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [userSearchTerm, setUserSearchTerm] = useState('');
     const [userPage, setUserPage] = useState(0);
+
+    // QoL: Bulk actions and filters
+    const [selectedProfIds, setSelectedProfIds] = useState<Set<string>>(new Set());
+    const [selectedDeptIds, setSelectedDeptIds] = useState<Set<string>>(new Set());
+    const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
+    const [pendingFilter, setPendingFilter] = useState<'all' | 'professors' | 'departments' | 'courses'>('all');
+    const [pendingSort, setPendingSort] = useState<'newest' | 'oldest'>('newest');
+    const [pendingSearchTerm, setPendingSearchTerm] = useState('');
+
     const supabase = createClient();
     const router = useRouter();
 
@@ -318,6 +335,64 @@ export default function ModeratorDashboard() {
         }
     };
 
+    // Bulk action handlers
+    const handleBulkApprove = async (type: 'professors' | 'departments' | 'courses', ids: Set<string>) => {
+        if (ids.size === 0) return;
+        if (!confirm(`Approve ${ids.size} ${type}?`)) return;
+
+        const idArray = Array.from(ids);
+        const { error } = await supabase
+            .from(type)
+            .update({ is_verified: true })
+            .in('id', idArray);
+
+        if (error) {
+            alert(`Failed to bulk approve: ${error.message}`);
+        } else {
+            alert(`${ids.size} ${type} approved!`);
+            if (type === 'professors') { loadPendingProfessors(); setSelectedProfIds(new Set()); }
+            if (type === 'departments') { loadPendingDepartments(); setSelectedDeptIds(new Set()); }
+            if (type === 'courses') { loadPendingCourses(); setSelectedCourseIds(new Set()); }
+        }
+    };
+
+    const handleBulkReject = async (type: 'professors' | 'departments' | 'courses', ids: Set<string>) => {
+        if (ids.size === 0) return;
+        if (!confirm(`REJECT and DELETE ${ids.size} ${type}? This cannot be undone.`)) return;
+
+        const idArray = Array.from(ids);
+        const { error } = await supabase
+            .from(type)
+            .delete()
+            .in('id', idArray);
+
+        if (error) {
+            alert(`Failed to bulk reject: ${error.message}`);
+        } else {
+            alert(`${ids.size} ${type} rejected and deleted.`);
+            if (type === 'professors') { loadPendingProfessors(); setSelectedProfIds(new Set()); }
+            if (type === 'departments') { loadPendingDepartments(); setSelectedDeptIds(new Set()); }
+            if (type === 'courses') { loadPendingCourses(); setSelectedCourseIds(new Set()); }
+        }
+    };
+
+    const toggleSelection = (id: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
+        setter(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) newSet.delete(id);
+            else newSet.add(id);
+            return newSet;
+        });
+    };
+
+    const selectAll = (items: any[], setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
+        setter(new Set(items.map(i => i.id)));
+    };
+
+    const clearSelection = (setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
+        setter(new Set());
+    };
+
     if (isLoading) {
         return (
             <div className="min-h-screen bg-slate-50 p-8">
@@ -428,63 +503,145 @@ export default function ModeratorDashboard() {
                         <TabsTrigger value="users">Users ({allUsers.length})</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="pending-profs" className="mt-4">
+                    <TabsContent value="pending-profs" className="mt-4 space-y-6">
+                        {/* Search and Filter Bar */}
+                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                            <div className="relative flex-1 max-w-md">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search pending items..."
+                                    value={pendingSearchTerm}
+                                    onChange={(e) => setPendingSearchTerm(e.target.value)}
+                                    className="pl-10"
+                                />
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <Select value={pendingSort} onValueChange={(v: 'newest' | 'oldest') => setPendingSort(v)}>
+                                    <SelectTrigger className="w-[130px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">Newest First</SelectItem>
+                                        <SelectItem value="oldest">Oldest First</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Pending Professors */}
                         <Card>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <School className="h-4 w-4" />
+                                        Pending Professors ({pendingProfessors.length})
+                                    </CardTitle>
+                                    {selectedProfIds.size > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground">{selectedProfIds.size} selected</span>
+                                            <Button size="sm" variant="outline" onClick={() => clearSelection(setSelectedProfIds)}>Clear</Button>
+                                            <Button size="sm" variant="destructive" onClick={() => handleBulkReject('professors', selectedProfIds)}>
+                                                Reject All
+                                            </Button>
+                                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkApprove('professors', selectedProfIds)}>
+                                                <CheckCheck className="w-4 h-4 mr-1" /> Approve All
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardHeader>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-10">
+                                            <Checkbox
+                                                checked={pendingProfessors.length > 0 && selectedProfIds.size === pendingProfessors.length}
+                                                onCheckedChange={(checked) => checked ? selectAll(pendingProfessors, setSelectedProfIds) : clearSelection(setSelectedProfIds)}
+                                            />
+                                        </TableHead>
                                         <TableHead>Professor Name</TableHead>
                                         <TableHead>Department</TableHead>
-                                        <TableHead>Verification Notes</TableHead>
-                                        <TableHead>Submitted Date</TableHead>
+                                        <TableHead>Notes</TableHead>
+                                        <TableHead>Date</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {pendingProfessors.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                                                No new professors to review.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        pendingProfessors.map((prof) => (
-                                            <TableRow key={prof.id}>
+                                    {(() => {
+                                        const filtered = pendingProfessors
+                                            .filter(p => p.name.toLowerCase().includes(pendingSearchTerm.toLowerCase()))
+                                            .sort((a, b) => pendingSort === 'newest'
+                                                ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                                                : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                                            );
+
+                                        if (filtered.length === 0) {
+                                            return (
+                                                <TableRow>
+                                                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                                        {pendingSearchTerm ? 'No matching professors.' : 'No new professors to review.'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        }
+
+                                        return filtered.map((prof) => (
+                                            <TableRow key={prof.id} className={selectedProfIds.has(prof.id) ? 'bg-muted/50' : ''}>
+                                                <TableCell>
+                                                    <Checkbox
+                                                        checked={selectedProfIds.has(prof.id)}
+                                                        onCheckedChange={() => toggleSelection(prof.id, setSelectedProfIds)}
+                                                    />
+                                                </TableCell>
                                                 <TableCell className="font-medium">{prof.name}</TableCell>
                                                 <TableCell>{prof.departments?.name || prof.department_id}</TableCell>
-                                                <TableCell className="max-w-xs truncate" title={prof.verification_notes}>
+                                                <TableCell className="max-w-xs truncate text-muted-foreground text-sm" title={prof.verification_notes}>
                                                     {prof.verification_notes || '-'}
                                                 </TableCell>
-                                                <TableCell>{new Date(prof.created_at).toLocaleDateString()}</TableCell>
+                                                <TableCell className="text-sm">{new Date(prof.created_at).toLocaleDateString()}</TableCell>
                                                 <TableCell className="text-right space-x-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => handleApprovalAction('professors', prof.id, 'reject')}
-                                                    >
+                                                    <Button size="sm" variant="destructive" onClick={() => handleApprovalAction('professors', prof.id, 'reject')}>
                                                         Reject
                                                     </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-green-600 hover:bg-green-700"
-                                                        onClick={() => handleApprovalAction('professors', prof.id, 'approve')}
-                                                    >
+                                                    <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprovalAction('professors', prof.id, 'approve')}>
                                                         Approve
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    )}
+                                        ));
+                                    })()}
                                 </TableBody>
                             </Table>
                         </Card>
 
                         {/* Departments Section */}
-                        <h3 className="text-lg font-semibold mt-8 mb-4">Pending Departments</h3>
                         <Card>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        Pending Departments ({pendingDepartments.length})
+                                    </CardTitle>
+                                    {selectedDeptIds.size > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground">{selectedDeptIds.size} selected</span>
+                                            <Button size="sm" variant="outline" onClick={() => clearSelection(setSelectedDeptIds)}>Clear</Button>
+                                            <Button size="sm" variant="destructive" onClick={() => handleBulkReject('departments', selectedDeptIds)}>Reject All</Button>
+                                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkApprove('departments', selectedDeptIds)}>
+                                                <CheckCheck className="w-4 h-4 mr-1" /> Approve All
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardHeader>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-10">
+                                            <Checkbox
+                                                checked={pendingDepartments.length > 0 && selectedDeptIds.size === pendingDepartments.length}
+                                                onCheckedChange={(checked) => checked ? selectAll(pendingDepartments, setSelectedDeptIds) : clearSelection(setSelectedDeptIds)}
+                                            />
+                                        </TableHead>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Code</TableHead>
                                         <TableHead>Date</TableHead>
@@ -494,45 +651,65 @@ export default function ModeratorDashboard() {
                                 <TableBody>
                                     {pendingDepartments.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                                 No new departments.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        pendingDepartments.map((dept) => (
-                                            <TableRow key={dept.id}>
-                                                <TableCell className="font-medium">{dept.name}</TableCell>
-                                                <TableCell>{dept.code}</TableCell>
-                                                <TableCell>{new Date(dept.created_at).toLocaleDateString()}</TableCell>
-                                                <TableCell className="text-right space-x-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => handleApprovalAction('departments', dept.id, 'reject')}
-                                                    >
-                                                        Reject
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-green-600 hover:bg-green-700"
-                                                        onClick={() => handleApprovalAction('departments', dept.id, 'approve')}
-                                                    >
-                                                        Approve
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
+                                        pendingDepartments
+                                            .filter(d => d.name.toLowerCase().includes(pendingSearchTerm.toLowerCase()) || d.code?.toLowerCase().includes(pendingSearchTerm.toLowerCase()))
+                                            .sort((a, b) => pendingSort === 'newest'
+                                                ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                                                : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                                            )
+                                            .map((dept) => (
+                                                <TableRow key={dept.id} className={selectedDeptIds.has(dept.id) ? 'bg-muted/50' : ''}>
+                                                    <TableCell>
+                                                        <Checkbox checked={selectedDeptIds.has(dept.id)} onCheckedChange={() => toggleSelection(dept.id, setSelectedDeptIds)} />
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">{dept.name}</TableCell>
+                                                    <TableCell>{dept.code}</TableCell>
+                                                    <TableCell className="text-sm">{new Date(dept.created_at).toLocaleDateString()}</TableCell>
+                                                    <TableCell className="text-right space-x-2">
+                                                        <Button size="sm" variant="destructive" onClick={() => handleApprovalAction('departments', dept.id, 'reject')}>Reject</Button>
+                                                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprovalAction('departments', dept.id, 'approve')}>Approve</Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
                                     )}
                                 </TableBody>
                             </Table>
                         </Card>
 
                         {/* Courses Section */}
-                        <h3 className="text-lg font-semibold mt-8 mb-4">Pending Courses</h3>
                         <Card>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <BookOpen className="h-4 w-4" />
+                                        Pending Courses ({pendingCourses.length})
+                                    </CardTitle>
+                                    {selectedCourseIds.size > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-muted-foreground">{selectedCourseIds.size} selected</span>
+                                            <Button size="sm" variant="outline" onClick={() => clearSelection(setSelectedCourseIds)}>Clear</Button>
+                                            <Button size="sm" variant="destructive" onClick={() => handleBulkReject('courses', selectedCourseIds)}>Reject All</Button>
+                                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkApprove('courses', selectedCourseIds)}>
+                                                <CheckCheck className="w-4 h-4 mr-1" /> Approve All
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardHeader>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-10">
+                                            <Checkbox
+                                                checked={pendingCourses.length > 0 && selectedCourseIds.size === pendingCourses.length}
+                                                onCheckedChange={(checked) => checked ? selectAll(pendingCourses, setSelectedCourseIds) : clearSelection(setSelectedCourseIds)}
+                                            />
+                                        </TableHead>
                                         <TableHead>Code</TableHead>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Date</TableHead>
@@ -542,34 +719,31 @@ export default function ModeratorDashboard() {
                                 <TableBody>
                                     {pendingCourses.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                                 No new courses.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        pendingCourses.map((course) => (
-                                            <TableRow key={course.id}>
-                                                <TableCell className="font-medium">{course.code}</TableCell>
-                                                <TableCell>{course.name}</TableCell>
-                                                <TableCell>{new Date(course.created_at).toLocaleDateString()}</TableCell>
-                                                <TableCell className="text-right space-x-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() => handleApprovalAction('courses', course.id, 'reject')}
-                                                    >
-                                                        Reject
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-green-600 hover:bg-green-700"
-                                                        onClick={() => handleApprovalAction('courses', course.id, 'approve')}
-                                                    >
-                                                        Approve
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
+                                        pendingCourses
+                                            .filter(c => c.name.toLowerCase().includes(pendingSearchTerm.toLowerCase()) || c.code.toLowerCase().includes(pendingSearchTerm.toLowerCase()))
+                                            .sort((a, b) => pendingSort === 'newest'
+                                                ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                                                : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                                            )
+                                            .map((course) => (
+                                                <TableRow key={course.id} className={selectedCourseIds.has(course.id) ? 'bg-muted/50' : ''}>
+                                                    <TableCell>
+                                                        <Checkbox checked={selectedCourseIds.has(course.id)} onCheckedChange={() => toggleSelection(course.id, setSelectedCourseIds)} />
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">{course.code}</TableCell>
+                                                    <TableCell>{course.name}</TableCell>
+                                                    <TableCell className="text-sm">{new Date(course.created_at).toLocaleDateString()}</TableCell>
+                                                    <TableCell className="text-right space-x-2">
+                                                        <Button size="sm" variant="destructive" onClick={() => handleApprovalAction('courses', course.id, 'reject')}>Reject</Button>
+                                                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprovalAction('courses', course.id, 'approve')}>Approve</Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
                                     )}
                                 </TableBody>
                             </Table>

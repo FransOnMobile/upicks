@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { GraduationCap, Building2, ShieldCheck, Users, Globe2, AlertTriangle, Heart, Ban, Lock, MessageSquareWarning, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -250,8 +251,15 @@ function HomeContent() {
       </section>
 
       <footer className="py-12 text-center text-sm text-muted-foreground bg-background w-full border-t border-border">
-        <div className="flex items-center justify-center gap-2 mb-4 opacity-70">
-          <GraduationCap className="w-6 h-6 text-[#7b1113]" />
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="relative w-10 h-10 rounded-lg overflow-hidden shadow-sm">
+            <Image
+              src="/icon.png"
+              alt="UPicks Logo"
+              fill
+              className="object-cover"
+            />
+          </div>
           <span className="font-playfair font-bold text-xl text-foreground">UPicks</span>
         </div>
         <p className="mb-6">© {new Date().getFullYear()} UPicks. Para sa isko't iska, para sa sistema.</p>
