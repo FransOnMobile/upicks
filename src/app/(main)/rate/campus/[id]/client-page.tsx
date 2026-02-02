@@ -108,6 +108,7 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
 
     const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
     const [localVotes, setLocalVotes] = useState<Set<string>>(new Set());
+    const [votingMap, setVotingMap] = useState<Record<string, boolean>>({});
 
     // Fetch user votes if authenticated
     useEffect(() => {
@@ -139,9 +140,13 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
     }, [isAuthenticated, reviews.length]); // Dependencies
 
     const handleUpvote = async (reviewId: string) => {
+        // Prevent spam clicking
+        if (votingMap[reviewId]) return;
+        setVotingMap(prev => ({ ...prev, [reviewId]: true }));
+
         const updateState = (delta: number, isVoted: boolean) => {
             setReviews(prev => prev.map(r =>
-                r.id === reviewId ? { ...r, helpful_count: (r.helpful_count || 0) + delta } : r
+                r.id === reviewId ? { ...r, helpful_count: Math.max(0, (r.helpful_count || 0) + delta) } : r
             ));
 
             if (isAuthenticated) {
@@ -159,56 +164,62 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
             }
         };
 
-        if (isAuthenticated) {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+        try {
+            if (isAuthenticated) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-            const isVoted = userVotes.has(reviewId);
+                const isVoted = userVotes.has(reviewId);
 
-            if (isVoted) {
-                // Remove vote
-                updateState(-1, false);
-                const { error } = await supabase
-                    .from('campus_rating_votes')
-                    .delete()
-                    .match({ rating_id: reviewId, user_id: user.id });
+                if (isVoted) {
+                    // Remove vote
+                    updateState(-1, false);
+                    const { error } = await supabase
+                        .from('campus_rating_votes')
+                        .delete()
+                        .match({ rating_id: reviewId, user_id: user.id });
 
-                if (!error) {
+                    if (!error) {
+                        await supabase.rpc('decrement_campus_helpful_count', { row_id: reviewId });
+                    } else {
+                        // Revert
+                        updateState(1, true);
+                        console.error(error);
+                    }
+                } else {
+                    // Add vote
+                    updateState(1, true);
+                    const { error } = await supabase
+                        .from('campus_rating_votes')
+                        .insert({ rating_id: reviewId, user_id: user.id });
+
+                    if (!error) {
+                        await supabase.rpc('increment_campus_helpful_count', { row_id: reviewId });
+                    } else {
+                        // Revert
+                        updateState(-1, false);
+                        console.error(error);
+                    }
+                }
+            } else {
+                // Local Storage Logic
+                const key = `upvoted_campus_review_${reviewId}`;
+                const hasLocalVote = localStorage.getItem(key);
+
+                if (hasLocalVote) {
+                    localStorage.removeItem(key);
+                    updateState(-1, false);
                     await supabase.rpc('decrement_campus_helpful_count', { row_id: reviewId });
                 } else {
-                    // Revert
+                    localStorage.setItem(key, 'true');
                     updateState(1, true);
-                    console.error(error);
-                }
-            } else {
-                // Add vote
-                updateState(1, true);
-                const { error } = await supabase
-                    .from('campus_rating_votes')
-                    .insert({ rating_id: reviewId, user_id: user.id });
-
-                if (!error) {
                     await supabase.rpc('increment_campus_helpful_count', { row_id: reviewId });
-                } else {
-                    // Revert
-                    updateState(-1, false);
-                    console.error(error);
                 }
             }
-        } else {
-            // Local Storage Logic
-            const key = `upvoted_campus_review_${reviewId}`;
-            const hasLocalVote = localStorage.getItem(key);
-
-            if (hasLocalVote) {
-                localStorage.removeItem(key);
-                updateState(-1, false);
-                await supabase.rpc('decrement_campus_helpful_count', { row_id: reviewId }); // Hook this up later
-            } else {
-                localStorage.setItem(key, 'true');
-                updateState(1, true);
-                await supabase.rpc('increment_campus_helpful_count', { row_id: reviewId });
-            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setVotingMap(prev => ({ ...prev, [reviewId]: false }));
         }
     };
 

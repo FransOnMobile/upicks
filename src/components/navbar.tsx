@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { createClient } from "@/utils/supabase/server"
 import { Button } from './ui/button'
 import UserProfile from './user-profile'
@@ -17,20 +16,9 @@ export default async function Navbar() {
           <Link
             href="/"
             prefetch
-            className="flex items-center gap-2.5 px-2 py-1 -ml-2 rounded-lg hover:bg-foreground/5 transition-colors duration-200 group"
+            className="text-2xl font-bold text-primary font-playfair hover:opacity-80 transition-opacity"
           >
-            <div className="relative w-9 h-9 rounded-lg overflow-hidden">
-              <Image
-                src="/icon.png"
-                alt="UPicks Logo"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            <span className="text-2xl font-bold text-primary font-playfair hidden sm:inline">
-              UPicks
-            </span>
+            UPicks
           </Link>
           <div className="hidden md:flex gap-6 border-l border-border pl-6">
             <Link
