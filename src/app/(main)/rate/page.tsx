@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from "@/utils/supabase/client";
 import { SearchHero } from '@/components/professor-search/search-hero';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, RefreshCw } from 'lucide-react';
 import { ProfessorListItem } from '@/components/professor-search/professor-list-item';
 import { Professor } from '@/components/professor-search/professor-card';
 import { AddProfessorDialog } from '@/components/professor-search/add-professor-dialog';
@@ -34,6 +34,7 @@ function RatePageContent() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSearching, setIsSearching] = useState(false); // Skeleton state
+    const [visibleCount, setVisibleCount] = useState(5);
 
     useEffect(() => {
         const loadData = async () => {
@@ -398,12 +399,26 @@ function RatePageContent() {
 
                             {filteredProfessors.length > 0 ? (
                                 <div className="grid gap-4">
-                                    {filteredProfessors.map((professor) => (
+                                    {filteredProfessors.slice(0, visibleCount).map((professor) => (
                                         <ProfessorListItem
                                             key={professor.id}
                                             professor={professor}
                                         />
                                     ))}
+
+                                    {visibleCount < filteredProfessors.length && (
+                                        <div className="flex justify-center mt-12">
+                                            <Button
+                                                variant="secondary"
+                                                size="lg"
+                                                onClick={() => setVisibleCount(prev => prev + 5)}
+                                                className="px-8 rounded-full shadow-lg hover:shadow-xl transition-all"
+                                            >
+                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                                Load More Professors
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="py-12">

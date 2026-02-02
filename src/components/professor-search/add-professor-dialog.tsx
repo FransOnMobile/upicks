@@ -56,8 +56,8 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
         // Wait, the parent `onAdd` signature is (name, deptCode, courseCode). 
         // I should probably pass the campus too, OR reliance on deptCode is enough if deptCode is unique? 
         // Department codes might be duplicated across campuses (e.g. "College of Science").
-        // So I should pass campus.
-        await onAdd(name, deptCode, courseCode, selectedCampus);
+        // We pass the campus too.
+        await onAdd(name.trim(), deptCode.trim(), courseCode.trim(), selectedCampus);
         setIsLoading(false);
         setOpen(false);
         setName('');
@@ -91,6 +91,7 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Juan Dela Cruz"
                             className="rounded-lg bg-background/50 border-input/50 focus:ring-primary/20"
+                            minLength={2}
                             required
                         />
                     </div>

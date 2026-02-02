@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from "@/utils/supabase/server"
 import { Button } from './ui/button'
 import UserProfile from './user-profile'
+import { NotificationBell } from './notifications/notification-bell'
 
 
 export default async function Navbar() {
@@ -44,7 +45,10 @@ export default async function Navbar() {
 
         <div className="flex gap-4 items-center">
           {user ? (
-            <UserProfile />
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <UserProfile />
+            </div>
           ) : (
             <>
               <Link

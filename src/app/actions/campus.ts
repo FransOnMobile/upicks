@@ -79,7 +79,7 @@ export async function submitCampusRating(formData: any) {
 
     if (error) {
         console.error("Insert Error:", error);
-        return { error: "Failed to save rating." };
+        return { error: error.message || "Failed to save rating." };
     }
 
     // 4. Insert Tags
