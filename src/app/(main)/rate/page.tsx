@@ -226,7 +226,7 @@ function RatePageContent() {
 
         const CAMPUS_NAMES: Record<string, string> = {
             'diliman': 'UP Diliman',
-            'los-banos': 'UP Los Bañgos',
+            'los-banos': 'UP Los Baños',
             'manila': 'UP Manila',
             'visayas': 'UP Visayas',
             'baguio': 'UP Baguio',
