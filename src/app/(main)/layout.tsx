@@ -1,4 +1,5 @@
 import Navbar from "@/components/navbar";
+import { OrganizationSchema, WebsiteSchema } from "@/components/seo/json-ld";
 
 export default function MainLayout({
     children,
@@ -7,6 +8,8 @@ export default function MainLayout({
 }) {
     return (
         <>
+            <OrganizationSchema />
+            <WebsiteSchema />
             <Navbar />
             {children}
         </>

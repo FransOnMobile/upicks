@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { MetadataRoute } from 'next'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://upicks.vercel.app';
+  const baseUrl = 'https://upicks-main.vercel.app';
   
   // Static routes
   const routes = [

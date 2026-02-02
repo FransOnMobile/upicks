@@ -14,24 +14,52 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://upicks-main.vercel.app'),
   title: {
     default: "UPicks - Rate Your UP Professors",
     template: "%s | UPicks"
   },
   description: "The anonymous, student-driven professor rating platform for the UP community. Find the best mentors and share your campus experiences.",
-  keywords: ["UP", "University of the Philippines", "professor rating", "campus review", "student community"],
+  keywords: ["UP", "University of the Philippines", "professor rating", "campus review", "student community", "UP Diliman", "UP Los Baños", "UP Manila"],
   authors: [{ name: "UPicks Team" }],
+  creator: "UPicks Team",
+  publisher: "UPicks",
+  formatDetection: {
+    email: false,
+    telephone: false,
+  },
   openGraph: {
     title: "UPicks - Rate Your UP Professors",
     description: "The anonymous, student-driven professor rating platform for the UP community.",
     type: "website",
     locale: "en_PH",
     siteName: "UPicks",
+    url: "https://upicks-main.vercel.app",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "UPicks - Rate Your UP Professors",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "UPicks - Rate Your UP Professors",
     description: "The anonymous, student-driven professor rating platform for the UP community.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   icons: {
     icon: [
