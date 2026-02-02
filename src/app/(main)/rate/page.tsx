@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from "@/utils/supabase/client";
 import { SearchHero } from '@/components/professor-search/search-hero';
-import { Search } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 import { ProfessorListItem } from '@/components/professor-search/professor-list-item';
 import { Professor } from '@/components/professor-search/professor-card';
 import { AddProfessorDialog } from '@/components/professor-search/add-professor-dialog';
@@ -392,7 +392,7 @@ function RatePageContent() {
                             <div className="mb-8 relative z-30">
                                 <h2 className="text-3xl font-bold font-playfair text-[#7b1113] relative inline-block">
                                     {getHeaderTitle()}
-                                    <span className="absolute -bottom-2 left-0 w-1/3 h-1 bg-[#fbbf24] rounded-full"></span>
+                                    <div className="h-1 w-1/3 bg-[#fbbf24] rounded-full mt-2"></div>
                                 </h2>
                             </div>
 
@@ -406,34 +406,42 @@ function RatePageContent() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-3 opacity-60">
+                                <div className="py-12">
+                                    <div className="bg-gradient-to-br from-card to-muted/20 border border-border/60 rounded-2xl p-8 max-w-md mx-auto shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group text-center">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#7b1113]/5 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-150 duration-700" />
 
+                                        <div className="relative z-10 flex flex-col items-center gap-4">
+                                            <div className="p-4 bg-background rounded-2xl shadow-sm border border-border/50 group-hover:scale-110 transition-transform duration-300">
+                                                {searchValue ? <Search className="w-8 h-8 text-[#7b1113]" /> : <Search className="w-8 h-8 text-muted-foreground" />}
+                                            </div>
 
+                                            <div className="space-y-2">
+                                                <h3 className="font-bold text-xl font-playfair">
+                                                    {searchValue ? "No match found" : "Ready to search"}
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                                                    {searchValue
+                                                        ? `We couldn't find "${searchValue}". If they're missing, you can add them.`
+                                                        : "Enter a professor's name, department, or campus to get started."}
+                                                </p>
+                                            </div>
 
-                                    <div className="mt-8">
-                                        <AddProfessorDialog
-                                            onAdd={handleAddProfessor}
-                                            departments={departments}
-                                            userCampus={userCampus}
-                                            trigger={
-                                                <Button variant="outline" className="mt-4">
-                                                    Add Missing Professor
-                                                </Button>
-                                            }
-                                        />
+                                            {searchValue && (
+                                                <div className="pt-2 w-full">
+                                                    <AddProfessorDialog
+                                                        onAdd={handleAddProfessor}
+                                                        departments={departments}
+                                                        userCampus={userCampus}
+                                                        trigger={
+                                                            <Button className="w-full bg-[#7b1113] hover:bg-[#901c1e] text-white shadow-lg shadow-[#7b1113]/20 hover:shadow-[#7b1113]/40 transition-all">
+                                                                Add Missing Professor
+                                                            </Button>
+                                                        }
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-
-                                    <div className="w-24 h-24 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <Search className="w-10 h-10 text-muted-foreground" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold font-playfair text-foreground mb-2">
-                                        {searchValue ? "No match found" : "Ready to search"}
-                                    </h3>
-                                    <p className="max-w-md mx-auto text-muted-foreground">
-                                        {searchValue
-                                            ? "We couldn't find any professor matching your search. Try different keywords or check the spelling."
-                                            : "Enter a professor's name, department, or campus to get started."}
-                                    </p>
                                 </div>
                             )}
                         </>

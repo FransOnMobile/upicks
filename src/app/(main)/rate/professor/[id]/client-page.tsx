@@ -519,7 +519,7 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                                     professorId={professorId}
                                     professorName={professor.name}
                                     isAuthenticated={isAuthenticated}
-                                    className="[&_.text-muted-foreground]:text-white/60 [&_.text-primary]:text-white [&_button]:text-white/80 [&_button:hover]:text-white [&_span]:text-white/90"
+                                    className="[&_.text-muted-foreground]:text-white/60 [&_.text-primary]:text-white [&_button]:text-white/80 [&_button:hover]:text-white [&_span]:text-white/90 [&_.bg-yellow-50]:bg-yellow-400/20 [&_.text-yellow-700]:text-yellow-200 [&_.border-yellow-400\/50]:border-yellow-200/50"
                                 />
                             </div>
                         </div>
