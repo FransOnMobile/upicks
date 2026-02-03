@@ -77,52 +77,61 @@ export default async function Dashboard() {
         </div>
 
         {/* Stats / Quick Links Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="rounded-xl border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/50 transition-all cursor-pointer group hover:shadow-custom hover:-translate-y-1 duration-300">
-            <Link href="/rate" className="block h-full">
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold font-playfair text-foreground">Contribute</h2>
+            <Link href="/rate" className="text-sm text-primary hover:text-primary/80 font-medium hover:underline underline-offset-4 transition-all">Rate a Professor →</Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mx-left">
+            <Card className="rounded-xl border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/50 transition-all cursor-pointer group hover:shadow-custom hover:-translate-y-1 duration-300">
+              <Link href="/rate" className="block h-full w-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium group-hover:text-primary transition-colors tracking-wide uppercase text-muted-foreground">Share your experience</CardTitle>
+                  <Star className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold font-playfair mb-1">Rate a Professor</div>
+                  <p className="text-xs text-muted-foreground">
+                    All inputs are valued.
+                  </p>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card className="rounded-xl border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/50 transition-all cursor-pointer group hover:shadow-custom hover:-translate-y-1 duration-300">
+              <Link href="/campuses" className="block h-full w-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium tracking-wide uppercase text-muted-foreground">My Campus</CardTitle>
+                  <School className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold font-playfair mb-1">
+                    {userProfile.campus === 'diliman' ? 'UP Diliman' :
+                      userProfile.campus === 'mindanao' ? 'UP Mindanao' :
+                        userProfile.campus || 'UP System'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {userProfile.degree_program || 'Student'} • {userProfile.year_level || 'Unknown Year'}
+                  </p>
+                </CardContent>
+              </Link>
+            </Card>
+
+            {/*<Card className="rounded-xl border-border/50 bg-card/80 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium group-hover:text-primary transition-colors tracking-wide uppercase text-muted-foreground">Rate a Professor</CardTitle>
-                <Star className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                <CardTitle className="text-sm font-medium tracking-wide uppercase text-muted-foreground">Account Status</CardTitle>
+                <UserCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold font-playfair mb-1">Contribute</div>
+                <div className="text-3xl font-bold font-playfair mb-1 text-primary">Active</div>
                 <p className="text-xs text-muted-foreground">
-                  Share your experience to help others.
+                  Verified Student
                 </p>
               </CardContent>
-            </Link>
-          </Card>
-
-          <Card className="rounded-xl border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium tracking-wide uppercase text-muted-foreground">My Campus</CardTitle>
-              <School className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold font-playfair mb-1">
-                {userProfile.campus === 'diliman' ? 'UP Diliman' :
-                  userProfile.campus === 'mindanao' ? 'UP Mindanao' :
-                    userProfile.campus || 'UP System'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {userProfile.degree_program || 'Student'} • {userProfile.year_level || 'Unknown Year'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium tracking-wide uppercase text-muted-foreground">Account Status</CardTitle>
-              <UserCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold font-playfair mb-1 text-primary">Active</div>
-              <p className="text-xs text-muted-foreground">
-                Verified Student
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            </Card>*/}
+          </div>
+        </section>
 
         {/* Recent Ratings Section */}
         <section>

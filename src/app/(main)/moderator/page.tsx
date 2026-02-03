@@ -26,6 +26,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { AddCourseDialog } from '@/components/professor-search/add-course-dialog';
+import { AddProfessorDialog } from '@/components/professor-search/add-professor-dialog';
 
 interface Report {
     id: string;
@@ -60,6 +62,7 @@ export default function ModeratorDashboard() {
     const [allUsers, setAllUsers] = useState<UserRecord[]>([]);
     const [allProfessors, setAllProfessors] = useState<any[]>([]);
     const [allCourses, setAllCourses] = useState<any[]>([]);
+    const [allDepartments, setAllDepartments] = useState<any[]>([]);
     const [profSearchTerm, setProfSearchTerm] = useState('');
     const [courseSearchTerm, setCourseSearchTerm] = useState('');
     const [profPage, setProfPage] = useState(0);
@@ -112,7 +115,8 @@ export default function ModeratorDashboard() {
                 loadPendingNicknames(),
                 loadUsers(),
                 loadAllProfessors(),
-                loadAllCourses()
+                loadAllCourses(),
+                loadAllDepartments()
             ]);
             setIsLoading(false);
         };
@@ -144,6 +148,15 @@ export default function ModeratorDashboard() {
             .eq('is_verified', true)
             .order('code');
         if (data) setAllCourses(data);
+    };
+
+    const loadAllDepartments = async () => {
+        const { data } = await supabase
+            .from('departments')
+            .select('*')
+            .eq('is_verified', true)
+            .order('name');
+        if (data) setAllDepartments(data);
     };
 
     const handleRoleChange = async (userId: string, newRole: 'user' | 'moderator') => {
@@ -989,11 +1002,80 @@ export default function ModeratorDashboard() {
                     <TabsContent value="manage-profs" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <School className="h-5 w-5" />
-                                    Manage Verified Professors
-                                </CardTitle>
-                                <CardDescription>Search and delete existing professors.</CardDescription>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <School className="h-5 w-5" />
+                                            Manage Verified Professors
+                                        </CardTitle>
+                                        <CardDescription>Search and delete existing professors.</CardDescription>
+                                    </div>
+                                    <AddProfessorDialog
+                                        onAdd={async (name, deptCode, courseCode, campus) => {
+                                            const { data: { user } } = await supabase.auth.getUser();
+                                            if (!user) return;
+
+                                            // Find department id
+                                            const { data: dept } = await supabase
+                                                .from('departments')
+                                                .select('id')
+                                                .eq('code', deptCode)
+                                                .eq('campus', campus)
+                                                .single();
+
+                                            if (!dept) {
+                                                alert("Department not found for this campus.");
+                                                return;
+                                            }
+
+                                            // Check if course exists, if not create it
+                                            let courseId = null;
+                                            if (courseCode) {
+                                                const { data: course } = await supabase
+                                                    .from('courses')
+                                                    .select('id')
+                                                    .eq('code', courseCode)
+                                                    .eq('campus', campus)
+                                                    .single();
+
+                                                if (course) {
+                                                    courseId = course.id;
+                                                } else {
+                                                    const { data: newCourse } = await supabase
+                                                        .from('courses')
+                                                        .insert({
+                                                            name: courseCode,
+                                                            code: courseCode,
+                                                            campus: campus,
+                                                            is_verified: true,
+                                                            submitted_by: user.id
+                                                        })
+                                                        .select()
+                                                        .single();
+                                                    courseId = newCourse?.id;
+                                                }
+                                            }
+
+                                            const { error } = await supabase.from('professors').insert({
+                                                name,
+                                                department_id: dept.id,
+                                                campus,
+                                                is_verified: true,
+                                                submitted_by: user.id,
+                                                course_id: courseId
+                                            });
+
+                                            if (error) {
+                                                alert("Error: " + error.message);
+                                            } else {
+                                                alert("Professor added successfully!");
+                                                loadAllProfessors();
+                                            }
+                                        }}
+                                        departments={allDepartments}
+                                        userCampus={null}
+                                    />
+                                </div>
                                 <div className="relative mt-4">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
@@ -1084,11 +1166,34 @@ export default function ModeratorDashboard() {
                     <TabsContent value="manage-courses" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <BookOpen className="h-5 w-5" />
-                                    Manage Verified Courses
-                                </CardTitle>
-                                <CardDescription>Search and delete existing courses.</CardDescription>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <BookOpen className="h-5 w-5" />
+                                            Manage Verified Courses
+                                        </CardTitle>
+                                        <CardDescription>Search and delete existing courses.</CardDescription>
+                                    </div>
+                                    <AddCourseDialog
+                                        onAdd={async (name, code, campus) => {
+                                            const { data: { user } } = await supabase.auth.getUser();
+                                            if (!user) return;
+                                            const { error } = await supabase.from('courses').insert({
+                                                name,
+                                                code,
+                                                campus,
+                                                is_verified: true,
+                                                submitted_by: user.id
+                                            });
+                                            if (error) {
+                                                alert("Error: " + error.message);
+                                            } else {
+                                                alert("Course added successfully!");
+                                                loadAllCourses();
+                                            }
+                                        }}
+                                    />
+                                </div>
                                 <div className="relative mt-4">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
