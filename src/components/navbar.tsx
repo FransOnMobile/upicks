@@ -12,31 +12,31 @@ export default async function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 h-16 flex justify-between items-center">
-        <div className="flex items-center gap-6">
+      <div className="container mx-auto px-4 min-h-16 py-2 flex flex-wrap justify-between items-center gap-y-2">
+        <div className="flex items-center flex-wrap gap-x-6 gap-y-2">
           <Link
             href="/"
             prefetch
-            className="text-2xl font-bold text-primary font-playfair hover:opacity-80 transition-opacity"
+            className="text-2xl font-bold text-primary font-playfair hover:opacity-80 transition-opacity border-r pr-6"
           >
             UPicks
           </Link>
-          <div className="hidden md:flex gap-6 border-l border-border pl-6">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 md:gap-6">
             <Link
               href="/rate"
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2"
+              className="text-[10px] sm:text-xs md:text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2 whitespace-nowrap"
             >
               Rate Professor
             </Link>
             <Link
               href="/campuses"
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2"
+              className="text-[10px] sm:text-xs md:text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2 whitespace-nowrap"
             >
               Rate Campus
             </Link>
             <Link
               href="/community"
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2"
+              className="text-[10px] sm:text-xs md:text-sm font-medium text-foreground/80 hover:text-primary transition-colors flex items-center gap-2 whitespace-nowrap"
             >
               Community
             </Link>
