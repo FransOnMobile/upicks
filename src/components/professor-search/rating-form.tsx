@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, X } from 'lucide-react';
+import { Star, X, Skull } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -454,20 +454,25 @@ function RatingStars({
         )}
       </div>
       <div className="flex gap-2">
-        {[1, 2, 3, 4, 5].map((rating) => (
-          <button
-            key={rating}
-            type="button"
-            onClick={() => onChange(rating)}
-            className="focus:outline-none group relative p-1"
-          >
-            <Star
-              className={`w-10 h-10 transition-all duration-200 ${rating <= value
-                ? 'fill-[#FFD700] text-[#FFD700] scale-105'
-                : 'text-gray-200 group-hover:text-gray-300'}`}
-            />
-          </button>
-        ))}
+        {[1, 2, 3, 4, 5].map((rating) => {
+          const Icon = label === "Difficulty" ? Skull : Star;
+          return (
+            <button
+              key={rating}
+              type="button"
+              onClick={() => onChange(rating)}
+              className="focus:outline-none group relative p-1"
+            >
+              <Icon
+                className={`w-10 h-10 transition-all duration-200 ${rating <= value
+                  ? label === "Difficulty"
+                    ? 'fill-[#800000] text-black scale-105'
+                    : 'fill-[#FFD700] text-[#FFD700] scale-105'
+                  : 'text-gray-200 group-hover:text-gray-300'}`}
+              />
+            </button>
+          );
+        })}
       </div>
       <div className="flex justify-between text-xs text-muted-foreground px-1">
         <span>{minLabel}</span>

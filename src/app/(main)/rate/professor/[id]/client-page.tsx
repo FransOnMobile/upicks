@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from "@/utils/supabase/client";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Star, School, BookOpen, ThumbsUp, MessageSquare, ArrowLeft, ShieldCheck, Scale, MapPin } from 'lucide-react';
+import { Star, School, BookOpen, ThumbsUp, MessageSquare, ArrowLeft, ShieldCheck, Scale, MapPin, Skull } from 'lucide-react';
 import { RatingForm } from '@/components/professor-search/rating-form';
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -553,7 +553,7 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                             Quick Stats
                         </h3>
                         <div className="space-y-6">
-                            <RatingBar label="Difficulty" icon={<ShieldCheck className="w-4 h-4" />} value={professor.difficulty} inverse />
+                            <RatingBar label="Difficulty" icon={<Skull className="w-4 h-4" />} value={professor.difficulty} inverse />
                             <RatingBar label="Teaching" icon={<BookOpen className="w-4 h-4" />} value={professor.teachingQuality} />
                             <RatingBar label="Fairness" icon={<Scale className="w-4 h-4" />} value={professor.fairness} />
                             <RatingBar label="Clarity" icon={<MessageSquare className="w-4 h-4" />} value={professor.clarity} />
