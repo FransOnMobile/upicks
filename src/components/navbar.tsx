@@ -36,21 +36,6 @@ export default async function Navbar() {
             UPicks
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-x-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors whitespace-nowrap"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex gap-4 items-center">
           {/* Mobile Dropdown Menu */}
           <div className="md:hidden">
             <DropdownMenu>
@@ -90,6 +75,21 @@ export default async function Navbar() {
             </DropdownMenu>
           </div>
 
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-x-6">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors whitespace-nowrap"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-4 items-center">
           {user ? (
             <div className="flex items-center gap-2">
               <NotificationBell />
