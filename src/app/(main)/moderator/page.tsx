@@ -224,7 +224,7 @@ export default function ModeratorDashboard() {
     const loadPendingProfessors = async () => {
         const { data } = await supabase
             .from('professors')
-            .select('*')
+            .select('*, departments(name)')
             .eq('is_verified', false)
             .order('created_at', { ascending: false });
 
