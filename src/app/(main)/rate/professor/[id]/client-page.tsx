@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from "@/utils/supabase/client";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, School, BookOpen, ThumbsUp, MessageSquare, ArrowLeft, ShieldCheck, Scale, MapPin, Skull } from 'lucide-react';
 import { RatingForm } from '@/components/professor-search/rating-form';
-import { Skeleton } from "@/components/ui/skeleton";
+
 import {
     Dialog,
     DialogContent,
@@ -19,234 +19,56 @@ import {
 import { cn } from "@/lib/utils";
 import { getAvatarColor } from "@/lib/avatar-utils";
 import { ProfessorNicknames } from "@/components/professor-nicknames";
+import { ReviewReplies } from "@/components/review-replies";
 
 interface ProfessorDetailsClientProps {
     professorId: string;
+    initialData: {
+        professor: any;
+        reviews: any[];
+        userVotes: string[]; // Passed as array, converted to Set
+        ratedCourseIds: string[];
+        availableTags?: any[]; // Optional initial tags
+    }
 }
 
-export default function ProfessorDetailsClient({ professorId }: ProfessorDetailsClientProps) {
+export default function ProfessorDetailsClient({ professorId, initialData }: ProfessorDetailsClientProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const supabase = createClient();
 
-    const [professor, setProfessor] = useState<any>(null);
-    const [reviews, setReviews] = useState<any[]>([]);
-    const [ratedCourseIds, setRatedCourseIds] = useState<string[]>([]);
-    const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
+    // Initialize state from Server Data
+    const [professor, setProfessor] = useState<any>(initialData.professor);
+    const [reviews, setReviews] = useState<any[]>(initialData.reviews);
+    const [ratedCourseIds, setRatedCourseIds] = useState<string[]>(initialData.ratedCourseIds);
+    const [userVotes, setUserVotes] = useState<Set<string>>(new Set(initialData.userVotes));
+
     const [localVotes, setLocalVotes] = useState<Set<string>>(new Set());
     const [votingMap, setVotingMap] = useState<Record<string, boolean>>({});
-    const [isThinking, setIsThinking] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false); // No longer loading initially!
     const [showRatingForm, setShowRatingForm] = useState(false);
-    const [courses, setCourses] = useState<any[]>([]);
-    const [tags, setTags] = useState<any[]>([]);
+    const [courses, setCourses] = useState<any[]>([]); // Lazy loaded
+    const [tags, setTags] = useState<any[]>(initialData.availableTags || []);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [sortBy, setSortBy] = useState('newest');
     const [selectedReviewer, setSelectedReviewer] = useState<{ id: string, nickname: string } | null>(null);
+    const [highlightedReviewId, setHighlightedReviewId] = useState<string | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+    const [visibleCount, setVisibleCount] = useState(5);
 
+    // Auth State Management
     useEffect(() => {
-        const loadData = async () => {
+        const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             setIsAuthenticated(!!session);
-
-            // Fetch Professor Details
-            const { data: profData, error } = await supabase
-                .from('professors')
-                .select(`
-                    *,
-                    departments:department_id (name)
-                `)
-                .eq('id', professorId)
-                .single();
-
-            if (error || !profData) {
-                console.error("Error loading professor", error);
-                setLoading(false);
-                return;
-            }
-
-            // Fetch User Data & Votes if authenticated
-            if (session?.user) {
-                const { data: userRatings } = await supabase
-                    .from('ratings')
-                    .select('course_id')
-                    .eq('professor_id', professorId)
-                    .eq('user_id', session.user.id);
-
-                if (userRatings) {
-                    setRatedCourseIds(userRatings.map(r => r.course_id));
-                }
-
-                const { data: votes } = await supabase
-                    .from('rating_votes')
-                    .select('rating_id')
-                    .eq('user_id', session.user.id);
-
-                if (votes) {
-                    setUserVotes(new Set(votes.map(v => v.rating_id)));
-                }
-            }
-
-            // Fetch Reviews
-            // Fetch Reviews
-            const { data: ratingsData } = await supabase
-                .from('ratings')
-                .select(`
-                    *,
-                    courses (code, name),
-                    rating_tag_associations (
-                        rating_tags (name)
-                    ),
-                    users (nickname),
-                    user_id
-                `)
-                .eq('professor_id', professorId)
-                .order('created_at', { ascending: false });
-
-            // Process Reviews & Stats
-            const formattedReviews = ratingsData?.map((r: any) => ({
-                id: r.id,
-                rating: r.overall_rating,
-                reviewText: r.review_text || '',
-                course: r.courses?.code || 'Unknown',
-                tags: r.rating_tag_associations?.map((t: any) => t.rating_tags?.name).filter(Boolean) || [],
-                helpful_count: r.helpful_count || 0,
-                created_at: r.created_at,
-                is_anonymous: r.is_anonymous,
-                teaching_quality: r.teaching_quality,
-                fairness: r.fairness,
-                clarity: r.clarity,
-                difficulty: r.difficulty, // Added difficulty mapping
-                grade: r.grade_received,
-                attendance: r.mandatory_attendance ? 'Mandatory' : 'Optional',
-                would_take_again: r.would_take_again,
-                nickname: r.users?.nickname || null,
-                user_id: r.user_id,
-                displayName: r.is_anonymous ? 'Anonymous Student' : (r.users?.nickname || 'Verified Student')
-            })) || [];
-
-            // Calculate Aggregates
-            const totalReviews = formattedReviews.length;
-            const avgRating = totalReviews > 0
-                ? formattedReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
-                : 0;
-
-            const avgDifficulty = totalReviews > 0
-                ? formattedReviews.reduce((sum, r) => sum + (r.difficulty || 0), 0) / totalReviews
-                : 0;
-
-            const avgTeaching = totalReviews > 0
-                ? formattedReviews.reduce((sum, r) => sum + (r.teaching_quality || 0), 0) / totalReviews
-                : 0;
-
-            const avgFairness = totalReviews > 0
-                ? formattedReviews.reduce((sum, r) => sum + (r.fairness || 0), 0) / totalReviews
-                : 0;
-
-            const avgClarity = totalReviews > 0
-                ? formattedReviews.reduce((sum, r) => sum + (r.clarity || 0), 0) / totalReviews
-                : 0;
-
-            const wouldTakeAgainCount = formattedReviews.filter(r => r.would_take_again).length;
-            const wouldTakeAgainPercentage = totalReviews > 0
-                ? Math.round((wouldTakeAgainCount / totalReviews) * 100)
-                : 0;
-
-            // Extract top tags
-            const tagCounts: Record<string, number> = {};
-            formattedReviews.forEach(r => {
-                r.tags.forEach((t: string) => tagCounts[t] = (tagCounts[t] || 0) + 1);
-            });
-            const topTags = Object.entries(tagCounts)
-                .sort(([, a], [, b]) => b - a) // Sort by count descending
-                .slice(0, 5) // Take top 5
-                .map(([name]) => name);
-
-            // Subject Stats
-            const subjectStatsMap: Record<string, { total: number, count: number }> = {};
-            formattedReviews.forEach(r => {
-                const code = r.course || 'Unknown';
-                if (!subjectStatsMap[code]) {
-                    subjectStatsMap[code] = { total: 0, count: 0 };
-                }
-                subjectStatsMap[code].total += r.rating;
-                subjectStatsMap[code].count += 1;
-            });
-
-            const subjectStats = Object.entries(subjectStatsMap).map(([code, data]) => ({
-                code,
-                rating: data.total / data.count,
-                count: data.count
-            })).sort((a, b) => b.count - a.count);
-
-            setProfessor({
-                ...profData,
-                departments: profData.departments,
-                overallRating: avgRating,
-                reviewCount: totalReviews,
-                wouldTakeAgainPercentage,
-                difficulty: avgDifficulty,
-                teachingQuality: avgTeaching,
-                fairness: avgFairness,
-                clarity: avgClarity,
-                topTags: topTags,
-                subjectStats
-            });
-
-            setReviews(formattedReviews);
-
-            // Load Metadata for Form
-            // Fetch courses with a higher limit to bypass default 1000 row limit
-            // Ideally we filter by campus server-side, but due to Potential string mismatches ("UP Mindanao" vs "mindanao"),
-            // we will fetch a larger batch and filter client-side for now, or use a permissive query if possible.
-            // For now, increasing limit is the safest fix for "Deep recurring issue" of missing data.
-            // Using Promise.all for parallel fetching (performance optimization)
-            const [coursesResult, tagsResult] = await Promise.all([
-                supabase
-                    .from('courses')
-                    .select('*')
-                    .limit(5000)
-                    .order('code'),
-                supabase.from('rating_tags').select('*')
-            ]);
-
-            const coursesData = coursesResult.data;
-            let tagsData = tagsResult.data;
-
-            // Seed tags if empty
-            if (!tagsData || tagsData.length === 0) {
-                const defaultTags = [
-                    { name: 'Inspirational', category: 'positive' },
-                    { name: 'Respected', category: 'positive' },
-                    { name: 'Accessible', category: 'positive' },
-                    { name: 'Clear Grading', category: 'positive' },
-                    { name: 'Engaging', category: 'positive' },
-                    { name: 'Gives Feedback', category: 'positive' },
-                    { name: 'Tough Grader', category: 'negative' },
-                    { name: 'Late Grader', category: 'negative' },
-                    { name: 'Monotone', category: 'negative' },
-                    { name: 'Heavy Workload', category: 'negative' },
-                    { name: 'Strict Attendance', category: 'negative' },
-                    { name: 'Pop Quizzes', category: 'neutral' }
-                ];
-
-                const { error: seedError } = await supabase.from('rating_tags').insert(defaultTags);
-                if (!seedError) {
-                    const { data: refreshedTags } = await supabase.from('rating_tags').select('*');
-                    tagsData = refreshedTags;
-                }
-            }
-
-            if (coursesData) setCourses(coursesData);
-            if (tagsData) setTags(tagsData);
-
-            setLoading(false);
+            setCurrentUserId(session?.user?.id);
         };
-
-        loadData();
+        checkAuth();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             const isAuth = !!session;
             setIsAuthenticated(isAuth);
+            setCurrentUserId(session?.user?.id);
             if (!isAuth) {
                 setShowRatingForm(false);
             }
@@ -255,7 +77,27 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
         return () => {
             subscription.unsubscribe();
         };
-    }, [professorId]);
+    }, []);
+
+    // Lazy load courses only when needed
+    useEffect(() => {
+        if (showRatingForm && courses.length === 0) {
+            const loadCourses = async () => {
+                // Optimized: Do not fetch all 5000 if possible, but for now we mirror logic to avoid breaking
+                // Ideally we should use a search API or filtered fetch.
+                // We'll keep the limit as requested but move it here.
+                const { data } = await supabase.from('courses').select('*').limit(5000).order('code');
+                if (data) setCourses(data);
+
+                // Also ensure tags if missing
+                if (tags.length === 0) {
+                    const { data: t } = await supabase.from('rating_tags').select('*');
+                    if (t) setTags(t);
+                }
+            };
+            loadCourses();
+        }
+    }, [showRatingForm, courses.length, tags.length, supabase]);
 
     useEffect(() => {
         // Load local votes for anon users
@@ -268,7 +110,22 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
             });
             setLocalVotes(local);
         }
-    }, [reviews, isAuthenticated]);
+
+        // Handle Highlighted Review
+        const reviewId = searchParams.get('reviewId');
+        if (reviewId && !loading && reviews.length > 0) {
+            setHighlightedReviewId(reviewId);
+            // Wait a tick for rendering
+            setTimeout(() => {
+                const element = document.getElementById(`review-${reviewId}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Remove highlight after 3 seconds
+                    setTimeout(() => setHighlightedReviewId(null), 3000);
+                }
+            }, 500);
+        }
+    }, [reviews, isAuthenticated, loading, searchParams]);
 
     const handleUpvote = async (reviewId: string) => {
         if (votingMap[reviewId]) return; // Prevent spam
@@ -401,64 +258,7 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-background pb-20">
-                {/* Skeleton Header */}
-                <div className="bg-muted/10 pt-24 pb-12 px-4 shadow-sm relative overflow-hidden">
-                    <div className="max-w-5xl mx-auto relative z-10 flex flex-col md:flex-row gap-8 items-start">
-                        <Skeleton className="w-24 h-24 md:w-32 md:h-32 rounded-2xl" />
-                        <div className="flex-1 space-y-4">
-                            <Skeleton className="h-10 w-3/4 max-w-md" />
-                            <div className="flex gap-4">
-                                <Skeleton className="h-6 w-32" />
-                                <Skeleton className="h-6 w-24" />
-                            </div>
-                            <div className="flex gap-2">
-                                <Skeleton className="h-6 w-20" />
-                                <Skeleton className="h-6 w-20" />
-                                <Skeleton className="h-6 w-20" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="max-w-5xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Skeleton Stats */}
-                    <div className="space-y-6">
-                        <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-4">
-                            <Skeleton className="h-6 w-32 mb-4" />
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-14 w-full mt-6 rounded-lg" />
-                        </div>
-                    </div>
-
-                    {/* Skeleton Reviews */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <Skeleton className="h-8 w-48 mb-4" />
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-4">
-                                <div className="flex justify-between">
-                                    <div className="flex gap-4">
-                                        <Skeleton className="w-12 h-12 rounded-lg" />
-                                        <div className="space-y-2">
-                                            <Skeleton className="h-5 w-32" />
-                                            <Skeleton className="h-4 w-24" />
-                                        </div>
-                                    </div>
-                                    <Skeleton className="h-6 w-20" />
-                                </div>
-                                <Skeleton className="h-4 w-full" />
-                                <Skeleton className="h-4 w-2/3" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     if (!professor) {
         return <div className="min-h-screen flex items-center justify-center">Professor not found</div>;
@@ -627,23 +427,42 @@ export default function ProfessorDetailsClient({ professorId }: ProfessorDetails
                     </div>
 
                     {reviews.length > 0 ? (
-                        reviews
-                            .sort((a, b) => {
-                                if (sortBy === 'highest') return b.rating - a.rating;
-                                if (sortBy === 'lowest') return a.rating - b.rating;
-                                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-                            })
-                            .map((review) => (
-                                <ReviewCard
-                                    key={review.id}
-                                    review={review}
-                                    onUpvote={handleUpvote}
-                                    onReport={handleReport}
-                                    isHelpful={isAuthenticated ? userVotes.has(review.id) : localVotes.has(review.id)}
-                                    helpfulCount={review.helpful_count}
-                                    onUserClick={(id, nickname) => setSelectedReviewer({ id, nickname })}
-                                />
-                            ))
+                        <>
+                            {reviews
+                                .sort((a, b) => {
+                                    if (sortBy === 'highest') return b.rating - a.rating;
+                                    if (sortBy === 'lowest') return a.rating - b.rating;
+                                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                                })
+                                .slice(0, visibleCount)
+                                .map((review) => (
+                                    <ReviewCard
+                                        key={review.id}
+                                        review={review}
+                                        onUpvote={handleUpvote}
+                                        onReport={handleReport}
+                                        isHelpful={isAuthenticated ? userVotes.has(review.id) : localVotes.has(review.id)}
+                                        helpfulCount={review.helpful_count}
+                                        onUserClick={(id, nickname) => setSelectedReviewer({ id, nickname })}
+                                        isHighlighted={review.id === highlightedReviewId}
+                                        isAuthenticated={isAuthenticated}
+                                        currentUserId={currentUserId}
+                                        initialReplyCount={review.reply_count}
+                                    />
+                                ))}
+
+                            {visibleCount < reviews.length && (
+                                <div className="flex justify-center mt-8 pb-8">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setVisibleCount(prev => prev + 5)}
+                                        className="w-full md:w-auto min-w-[200px]"
+                                    >
+                                        Load More Reviews ({reviews.length - visibleCount} remaining)
+                                    </Button>
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="text-center py-12 opacity-60 bg-muted/20 rounded-xl border border-dashed border-border">
                             <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -810,7 +629,7 @@ function getRatingColor(rating: number, inverse = false) {
     return 'text-red-600';
 }
 
-function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUserClick }: { review: any, onUpvote: any, onReport: any, isHelpful: boolean, helpfulCount: number, onUserClick?: (id: string, nickname: string) => void }) {
+function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUserClick, isHighlighted, isAuthenticated, currentUserId, initialReplyCount }: { review: any, onUpvote: any, onReport: any, isHelpful: boolean, helpfulCount: number, onUserClick?: (id: string, nickname: string) => void, isHighlighted?: boolean, isAuthenticated?: boolean, currentUserId?: string, initialReplyCount?: number }) {
     const hasRealNickname = !review.is_anonymous && review.nickname;
 
     const handleProfileClick = () => {
@@ -820,10 +639,16 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
     };
 
     return (
-        <div className="group bg-card hover:bg-muted/30 border border-border rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+        <div
+            id={`review-${review.id}`}
+            className={cn(
+                "group bg-card hover:bg-muted/30 border border-border rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-500 relative overflow-hidden",
+                isHighlighted && "ring-4 ring-[#fbbf24] bg-[#fbbf24]/5"
+            )}
+        >
             {/* Gradient accent */}
             <div className={`absolute top-0 left-0 w-1 h-full transition-all duration-500
-                ${review.rating >= 4 ? 'bg-green-500' : review.rating >= 2.5 ? 'bg-yellow-500' : 'bg-red-500'}
+                ${review.overall_rating >= 4 ? 'bg-green-500' : review.overall_rating >= 2.5 ? 'bg-yellow-500' : 'bg-red-500'}
                 opacity-50 group-hover:opacity-100`}></div>
 
             <div className="flex justify-between items-start mb-4 pl-3">
@@ -946,6 +771,16 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
                     </button>
                 </div>
             </div>
+
+            {/* Replies Section */}
+            <ReviewReplies
+                ratingId={review.id}
+                type="professor"
+                isAuthenticated={isAuthenticated || false}
+                currentUserId={currentUserId}
+                initialReplyCount={initialReplyCount}
+                onUserClick={onUserClick}
+            />
         </div>
     )
 }

@@ -16,6 +16,7 @@ import {
     DialogTitle,
     DialogFooter
 } from "@/components/ui/dialog";
+import { ReviewReplies } from "@/components/review-replies";
 
 // Enhanced Mock Data (Ideally fetch from DB if table exists, but hardcoded allows speed for now)
 const CAMPUSES: Record<string, any> = {
@@ -93,6 +94,8 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
     const [sortBy, setSortBy] = useState('newest');
     const [tags, setTags] = useState<any[]>([]);
     const [selectedReviewer, setSelectedReviewer] = useState<{ id: string, nickname: string } | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+    const [visibleCount, setVisibleCount] = useState(5);
 
     // Stats
     const [stats, setStats] = useState({
@@ -105,6 +108,7 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
         topTags: [] as string[]
 
     });
+
 
     const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
     const [localVotes, setLocalVotes] = useState<Set<string>>(new Set());
@@ -257,6 +261,7 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
         const loadData = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             setIsAuthenticated(!!session);
+            setCurrentUserId(session?.user?.id);
 
             // Fetch Ratings with Tags
             const { data: ratingsData, error } = await supabase
@@ -267,7 +272,8 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
                         campus_tags (name)
                     ),
                     users (nickname),
-                    user_id
+                    user_id,
+                    campus_rating_replies(count)
                 `)
                 .eq('campus_id', campusId)
                 .order('created_at', { ascending: false });
@@ -278,7 +284,8 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
                     ...r,
                     tags: r.campus_rating_tag_associations?.map((t: any) => t.campus_tags?.name).filter(Boolean) || [],
                     nickname: r.users?.nickname || null,
-                    displayName: r.is_anonymous ? 'Anonymous Student' : (r.users?.nickname || 'Verified Student')
+                    displayName: r.is_anonymous ? 'Anonymous Student' : (r.users?.nickname || 'Verified Student'),
+                    reply_count: r.campus_rating_replies?.[0]?.count || 0
                 }));
 
                 setReviews(formattedReviews);
@@ -503,23 +510,41 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
                     </div>
 
                     {reviews.length > 0 ? (
-                        reviews
-                            .sort((a, b) => {
-                                if (sortBy === 'highest') return b.overall_rating - a.overall_rating;
-                                if (sortBy === 'lowest') return a.overall_rating - b.overall_rating;
-                                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-                            })
-                            .map((review) => (
-                                <ReviewCard
-                                    key={review.id}
-                                    review={review}
-                                    onUpvote={handleUpvote}
-                                    onReport={handleReport}
-                                    isHelpful={isAuthenticated ? userVotes.has(review.id) : localVotes.has(review.id)}
-                                    helpfulCount={review.helpful_count}
-                                    onUserClick={(id, nickname) => setSelectedReviewer({ id, nickname })}
-                                />
-                            ))
+                        <>
+                            {reviews
+                                .sort((a, b) => {
+                                    if (sortBy === 'highest') return b.overall_rating - a.overall_rating;
+                                    if (sortBy === 'lowest') return a.overall_rating - b.overall_rating;
+                                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                                })
+                                .slice(0, visibleCount)
+                                .map((review) => (
+                                    <ReviewCard
+                                        key={review.id}
+                                        review={review}
+                                        onUpvote={handleUpvote}
+                                        onReport={handleReport}
+                                        isHelpful={isAuthenticated ? userVotes.has(review.id) : localVotes.has(review.id)}
+                                        helpfulCount={review.helpful_count}
+                                        onUserClick={(id, nickname) => setSelectedReviewer({ id, nickname })}
+                                        isAuthenticated={isAuthenticated}
+                                        currentUserId={currentUserId}
+                                        initialReplyCount={review.reply_count}
+                                    />
+                                ))}
+
+                            {visibleCount < reviews.length && (
+                                <div className="flex justify-center mt-8 pb-8">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setVisibleCount(prev => prev + 5)}
+                                        className="w-full md:w-auto min-w-[200px]"
+                                    >
+                                        Load More Reviews ({reviews.length - visibleCount} remaining)
+                                    </Button>
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="text-center py-16 opacity-60 bg-muted/20 rounded-xl border border-dashed border-border flex flex-col items-center">
                             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -686,7 +711,7 @@ function RatingBar({ label, icon, value }: { label: string, icon: any, value: nu
     )
 }
 
-function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUserClick }: { review: any, onUpvote: any, onReport: any, isHelpful: boolean, helpfulCount: number, onUserClick?: (id: string, nickname: string) => void }) {
+function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUserClick, isAuthenticated, currentUserId, initialReplyCount }: { review: any, onUpvote: any, onReport: any, isHelpful: boolean, helpfulCount: number, onUserClick?: (id: string, nickname: string) => void, isAuthenticated?: boolean, currentUserId?: string, initialReplyCount?: number }) {
     const hasRealNickname = !review.is_anonymous && review.nickname;
 
     const handleProfileClick = () => {
@@ -796,6 +821,16 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
                     <span>Report</span>
                 </button>
             </div>
+
+            {/* Replies Section */}
+            <ReviewReplies
+                ratingId={review.id}
+                type="campus"
+                isAuthenticated={isAuthenticated || false}
+                currentUserId={currentUserId}
+                initialReplyCount={initialReplyCount}
+                onUserClick={onUserClick}
+            />
         </div>
     )
 }

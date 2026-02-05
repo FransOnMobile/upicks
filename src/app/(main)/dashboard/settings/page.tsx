@@ -190,18 +190,18 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="name">Display Name</Label>
+                                <Label htmlFor="name">Account Name</Label>
                                 <Input
                                     id="name"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder="Enter your name"
                                 />
-                                <p className="text-xs text-muted-foreground">This is your real/full name.</p>
+                                <p className="text-xs text-muted-foreground">This name is valid for account recovery and is <strong>not shared publicly</strong>.</p>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="nickname">Nickname (Optional)</Label>
+                                <Label htmlFor="nickname">Public Nickname (Optional)</Label>
                                 <Input
                                     id="nickname"
                                     value={nickname}

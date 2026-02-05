@@ -13,6 +13,7 @@ interface SearchHeroProps {
   subtitle?: string;
   statLabel1?: string;
   statLabel2?: string;
+  action?: React.ReactNode;
 }
 
 export function SearchHero({
@@ -21,9 +22,10 @@ export function SearchHero({
   totalProfessors,
   totalReviews,
   title = "Find Your Professor",
-  subtitle = "Search by name, department, or course code",
+  subtitle = "Search by name, college, or course code",
   statLabel1 = "Professors",
   statLabel2 = "Reviews",
+  action,
 }: SearchHeroProps) {
   return (
     <div className="w-full relative bg-[#7b1113] text-white pt-24 pb-20 px-4 flex flex-col items-center text-center overflow-hidden shadow-2xl">
@@ -59,12 +61,21 @@ export function SearchHero({
         </div>
 
         {/* Quick Stats - More Elegant */}
-        <div className="flex justify-center gap-4 mt-6">
-          <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold tracking-widest uppercase flex items-center gap-2 shadow-lg">
-            <span className="text-[#fbbf24]">{totalProfessors}</span> {statLabel1}
-          </div>
-          <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold tracking-widest uppercase flex items-center gap-2 shadow-lg">
-            <span className="text-[#fbbf24]">{totalReviews}</span> {statLabel2}
+        <div className="flex flex-col items-center gap-6 mt-8 w-full">
+          <div className="flex items-center justify-center gap-4">
+            <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold tracking-widest uppercase flex items-center gap-2 shadow-lg">
+              <span className="text-[#fbbf24]">{totalProfessors}</span> {statLabel1}
+            </div>
+            <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold tracking-widest uppercase flex items-center gap-2 shadow-lg">
+              <span className="text-[#fbbf24]">{totalReviews}</span> {statLabel2}
+            </div>
+
+            {/* Tooltip / Action - Now beside stats */}
+            {action && (
+              <div className="animate-in fade-in zoom-in duration-500 delay-150 ml-2">
+                {action}
+              </div>
+            )}
           </div>
         </div>
       </div>

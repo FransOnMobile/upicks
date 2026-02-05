@@ -95,15 +95,7 @@ export default async function OnboardingPage(props: {
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="student_number">Student Number</Label>
-                    <Input
-                        id="student_number"
-                        name="student_number"
-                        placeholder="e.g. 202X-XXXXX"
-                        required
-                    />
-                </div>
+
 
                 <div className="space-y-2">
                     <Label htmlFor="degree_program">Degree Program</Label>

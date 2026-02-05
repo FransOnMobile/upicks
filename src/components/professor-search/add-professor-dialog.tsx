@@ -116,10 +116,10 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="department" className="text-sm font-medium">Department <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="department" className="text-sm font-medium">College <span className="text-red-500">*</span></Label>
                         <Select value={deptCode} onValueChange={setDeptCode} disabled={!selectedCampus} required>
                             <SelectTrigger className="rounded-lg bg-background/50 border-input/50 focus:ring-primary/20">
-                                <SelectValue placeholder={!selectedCampus ? "Select Campus First" : "Select Department"} />
+                                <SelectValue placeholder={!selectedCampus ? "Select Campus First" : "Select College"} />
                             </SelectTrigger>
                             <SelectContent className="max-h-[200px] rounded-xl">
                                 {filteredDepartments.map((dept) => (
@@ -133,7 +133,7 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                             <AddDepartmentDialog
                                 onAdd={async (name, code) => {
                                     if (!selectedCampus) {
-                                        alert("You must select a campus before adding departments.");
+                                        alert("You must select a campus before adding colleges.");
                                         return;
                                     }
                                     const supabase = createClient();
@@ -149,7 +149,7 @@ export function AddProfessorDialog({ onAdd, departments, trigger, userCampus }: 
                                     if (error) {
                                         alert("Failed: " + error.message);
                                     } else {
-                                        alert("Department submitted for review!");
+                                        alert("College submitted for review!");
                                     }
                                 }}
                             />

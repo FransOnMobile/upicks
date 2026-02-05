@@ -95,6 +95,9 @@ export const signInWithGoogle = async () => {
     provider: 'google',
     options: {
       redirectTo: `${origin}/auth/callback`,
+      queryParams: {
+        hd: 'up.edu.ph',
+      }
     },
   });
 
@@ -180,7 +183,6 @@ export const resetPasswordAction = async (formData: FormData) => {
 
 export const completeOnboardingAction = async (formData: FormData) => {
   const campus = formData.get("campus")?.toString();
-  const studentNumber = formData.get("student_number")?.toString();
   const degreeParam = formData.get("degree_program")?.toString();
   const yearLevel = formData.get("year_level")?.toString();
   const nickname = formData.get("nickname")?.toString();
@@ -192,7 +194,7 @@ export const completeOnboardingAction = async (formData: FormData) => {
     return redirect("/sign-in");
   }
 
-  if (!campus || !studentNumber || !degreeParam || !yearLevel) {
+  if (!campus || !degreeParam || !yearLevel) {
     return encodedRedirect("error", "/onboarding", "All fields are required");
   }
 

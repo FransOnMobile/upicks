@@ -10,6 +10,7 @@ import { Professor } from '@/components/professor-search/professor-card';
 import { AddProfessorDialog } from '@/components/professor-search/add-professor-dialog';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from '@/components/ui/button';
+import { TipsTrigger } from '@/components/professor-search/tips-trigger';
 
 export default function RatePage() {
     // ... content moved to RatePageContent
@@ -98,7 +99,7 @@ function RatePageContent() {
                     return {
                         id: p.id,
                         name: p.name,
-                        department: p.department_name || 'Unknown Department',
+                        department: p.department_name || 'Unknown College',
                         departmentId: p.department_id,
                         overallRating: avgRating,
                         reviewCount: totalRatings,
@@ -297,6 +298,8 @@ function RatePageContent() {
 
 
 
+
+
     return (
         <div className="min-h-screen bg-background noise-texture">
             <SearchHero
@@ -304,6 +307,7 @@ function RatePageContent() {
                 searchValue={searchValue}
                 totalProfessors={professors.length}
                 totalReviews={professors.reduce((sum, p) => sum + p.reviewCount, 0)}
+                action={<TipsTrigger />}
             />
 
             <div className="max-w-5xl mx-auto px-4 py-8 -mt-8 relative z-20">
@@ -316,7 +320,6 @@ function RatePageContent() {
                             value={campus || ''}
                             onChange={(e) => {
                                 const newCampus = e.target.value;
-                                // Use router to push new param or remove it
                                 const params = new URLSearchParams(searchParams.toString());
                                 if (newCampus) params.set('campus', newCampus);
                                 else params.delete('campus');
@@ -334,26 +337,20 @@ function RatePageContent() {
                             <option value="ou">UP Open University</option>
                         </select>
 
-                        {/* Department Filter (Local state filtering for now) */}
+                        {/* College Filter */}
                         <select
                             className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#7b1113]/20 max-w-[200px]"
                             onChange={(e) => {
-                                // Simple local filter logic could go here, or just keep it simple for now
-                                // Ideally this should also be a URL param for shareability
-                                const deptId = e.target.value;
-                                if (deptId) {
-                                    // For now let's just use the search bar for departments as historically implemented?
-                                    // Or strictly filter. Let's keep it simple: if selected, filter filteredProfessors further.
-                                    // But filteredProfessors is memoized. We need a state for selectedDept.
-                                }
+                                // Placeholder for department filter logic
                             }}
                         >
-                            <option value="">All Departments</option>
+                            <option value="">All Colleges</option>
                             {departments
                                 .filter(d => !campus || d.campus === campus)
                                 .map(d => (
                                     <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
-                                ))}
+                                ))
+                            }
                         </select>
                     </div>
 
@@ -463,6 +460,6 @@ function RatePageContent() {
                     )}
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

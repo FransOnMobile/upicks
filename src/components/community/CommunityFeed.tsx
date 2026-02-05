@@ -316,10 +316,10 @@ export function CommunityFeed() {
                 </div>
             ) : (
                 <>
-                    {/* Masonry Layout */}
-                    <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+                    {/* Responsive Grid Layout instead of pure Masonry to avoid squishing in confined spaces */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {ratings.map((rating) => (
-                            <div key={rating.id} className="break-inside-avoid">
+                            <div key={rating.id} className="h-full">
                                 <RatingCard
                                     rating={rating}
                                     onClick={() => setSelectedRating(rating)}

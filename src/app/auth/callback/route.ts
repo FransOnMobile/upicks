@@ -38,12 +38,13 @@ export async function GET(request: Request) {
 
         if (!existingUser) {
           // New user - create record and mark for onboarding
-          const fullName = user.user_metadata.full_name || user.user_metadata.name || email.split("@")[0];
+          // We only use the UP Mail, so we don't collect full name. Use email prefix as initial name.
+          const nameFromEmail = email.split("@")[0];
           
           await supabase.from("users").insert({
             id: user.id,
-            name: fullName,
-            full_name: fullName,
+            name: nameFromEmail,
+            full_name: nameFromEmail,
             email: email,
             user_id: user.id,
             token_identifier: user.id,
