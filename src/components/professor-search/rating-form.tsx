@@ -314,12 +314,12 @@ export function RatingForm({
                 <Textarea
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
-                  placeholder="Share your experience with this professor... (Max 350 chars)"
+                  placeholder="Share your experience with this professor... (Max 500 chars)"
                   rows={6}
-                  maxLength={350}
+                  maxLength={500}
                   className="border-[rgba(100,80,140,0.12)] rounded-[4px] resize-none"
                 />
-                <div className="text-right text-xs text-muted-foreground">{reviewText.length}/350</div>
+                <div className="text-right text-xs text-muted-foreground">{reviewText.length}/500</div>
               </div>
               <div className="flex gap-3">
                 <Button

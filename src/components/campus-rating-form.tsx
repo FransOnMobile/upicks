@@ -149,7 +149,9 @@ export function CampusRatingForm({ isOpen, onClose, campusId, campusName, onSubm
                                     placeholder="Tell us more about the campus environment, culture, and tips for freshmen..."
                                     value={formData.reviewText}
                                     onChange={(e) => setFormData({ ...formData, reviewText: e.target.value })}
+                                    maxLength={500}
                                 />
+                                <div className="text-right text-xs text-muted-foreground">{formData.reviewText.length}/500</div>
                             </div>
 
                             <div className="flex items-center space-x-2 bg-muted/30 p-3 rounded-lg">
