@@ -14,8 +14,8 @@ interface OrganizationSchemaProps {
 
 export function OrganizationSchema({
     name = "UPicks",
-    url = "https://upicks-main.vercel.app",
-    logo = "https://upicks-main.vercel.app/icon.png",
+    url = "https://upicks.cc",
+    logo = "https://upicks.cc/icon.png",
     description = "The anonymous, student-driven professor rating platform for the UP community."
 }: OrganizationSchemaProps) {
     const schema = {
@@ -48,7 +48,7 @@ interface WebsiteSchemaProps {
 
 export function WebsiteSchema({
     name = "UPicks",
-    url = "https://upicks-main.vercel.app"
+    url = "https://upicks.cc"
 }: WebsiteSchemaProps) {
     const schema = {
         "@context": "https://schema.org",

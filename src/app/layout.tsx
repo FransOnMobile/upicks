@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
-import { TempoInit } from "@/components/tempo-init";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,7 +14,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://upicks-main.vercel.app'),
+  metadataBase: new URL('https://upicks.cc'),
   title: {
     default: "UPicks - Rate Your UP Professors",
     template: "%s | UPicks"
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_PH",
     siteName: "UPicks",
-    url: "https://upicks-main.vercel.app",
+    url: "https://upicks.cc",
     images: [
       {
         url: "/og-image.png",
@@ -91,8 +91,8 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster />
         </ThemeProvider>
-        <TempoInit />
       </body>
     </html>
   );

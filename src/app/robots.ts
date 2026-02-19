@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/private/', '/admin/', '/auth/'],
     },
-    sitemap: 'https://upicks-main.vercel.app/sitemap.xml',
+    sitemap: 'https://upicks.cc/sitemap.xml',
   }
 }
