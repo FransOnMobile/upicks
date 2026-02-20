@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s | UPicks"
   },
   description: "The anonymous, student-driven professor rating platform for the UP community. Find the best mentors and share your campus experiences.",
-  keywords: ["UP", "University of the Philippines", "professor rating", "campus review", "student community", "UP Diliman", "UP Los Baños", "UP Manila"],
+  keywords: ["UPicks", "upicks", "u picks", "UPicks.cc", "rate", "profs", "ratemyprof", "rate up professors", "UP", "University of the Philippines", "professor rating", "rate up profs", "rate up prof", "rating university of the philippines professors", "up prof reviews", "campus review", "student community", "UP Diliman", "UP Los Baños", "UP Manila", "Rate My Professor UP"],
   authors: [{ name: "UPicks Team" }],
   creator: "UPicks Team",
   publisher: "UPicks",
@@ -78,6 +78,18 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
 
       <body className={inter.className}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "UPicks",
+              alternateName: ["upicks", "UPicks.cc", "u picks"],
+              url: "https://upicks.cc/",
+            }),
+          }}
+        />
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3086021868950910"

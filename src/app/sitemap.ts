@@ -1,6 +1,8 @@
 import { createClient } from '@/utils/supabase/server';
 import { MetadataRoute } from 'next'
 
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://upicks.cc';
   
@@ -23,6 +25,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const supabase = await createClient();
+    
+    // Fetch professors
     const { data: professors } = await supabase
       .from('professors')
       .select('id, updated_at')
@@ -35,7 +39,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-    return [...routes, ...professorRoutes];
+    // Fetch campuses
+    const { data: campuses } = await supabase
+      .from('campuses')
+      .select('id');
+
+    const campusRoutes = (campuses || []).map((campus) => ({
+      url: `${baseUrl}/rate/campus/${campus.id}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    }));
+
+    return [...routes, ...professorRoutes, ...campusRoutes];
   } catch (error) {
     console.error('Failed to generate dynamic sitemap:', error);
     return routes;
