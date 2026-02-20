@@ -160,7 +160,7 @@ function RatePageContent() {
         });
 
         return filtered;
-    }, [professors, searchValue, campus, sortBy]);
+    }, [professors, searchValue, campus, departmentId, sortBy]);
 
 
     const handleAddProfessor = async (name: string, deptCode: string, courseCode: string, campus: string) => {
