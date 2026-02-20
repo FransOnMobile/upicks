@@ -52,7 +52,7 @@ const nextConfig = {
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                             "font-src 'self' https://fonts.gstatic.com",
                             "img-src 'self' data: https: blob:",
-                            "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://pagead2.googlesyndication.com",
+                            "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://pagead2.googlesyndication.com https://ep1.adtrafficquality.google https://googleads.g.doubleclick.net",
                             "frame-src 'self' https://googleads.g.doubleclick.net https://www.google.com",
                             "object-src 'none'",
                             "base-uri 'self'",
