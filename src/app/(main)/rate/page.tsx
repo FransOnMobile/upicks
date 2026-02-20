@@ -27,6 +27,7 @@ function RatePageContent() {
     const supabase = createClient();
     const searchParams = useSearchParams();
     const campus = searchParams.get('campus');
+    const departmentId = searchParams.get('department');
     const [searchValue, setSearchValue] = useState("");
     const [sortBy, setSortBy] = useState('rating_desc');
     const [userCampus, setUserCampus] = useState<string | null>(null);
@@ -136,6 +137,10 @@ function RatePageContent() {
 
         if (campus) {
             filtered = filtered.filter(p => !p.campus || p.campus === campus);
+        }
+
+        if (departmentId) {
+            filtered = filtered.filter(p => p.departmentId === departmentId);
         }
 
         // Apply sorting based on user selection or default to rating desc
@@ -323,6 +328,7 @@ function RatePageContent() {
                                 const params = new URLSearchParams(searchParams.toString());
                                 if (newCampus) params.set('campus', newCampus);
                                 else params.delete('campus');
+                                params.delete('department'); // Clear department when campus changes
                                 router.push(`/rate?${params.toString()}`);
                             }}
                         >
@@ -340,8 +346,13 @@ function RatePageContent() {
                         {/* College Filter */}
                         <select
                             className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#7b1113]/20 max-w-[200px]"
+                            value={departmentId || ''}
                             onChange={(e) => {
-                                // Placeholder for department filter logic
+                                const newDept = e.target.value;
+                                const params = new URLSearchParams(searchParams.toString());
+                                if (newDept) params.set('department', newDept);
+                                else params.delete('department');
+                                router.push(`/rate?${params.toString()}`);
                             }}
                         >
                             <option value="">All Colleges</option>
@@ -356,17 +367,22 @@ function RatePageContent() {
 
                     <div className="flex items-center gap-2 w-full md:w-auto">
                         <span className="text-sm text-muted-foreground whitespace-nowrap">Sort by:</span>
-                        <select
-                            className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#7b1113]/20 w-full md:w-auto"
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            disabled={!searchValue && !campus}
+                        <div
+                            className="relative w-full md:w-auto"
+                            title={(!searchValue && !campus) ? "Select a campus or search to enable sorting" : ""}
                         >
-                            <option value="rating_desc">Highest Rated</option>
-                            <option value="rating_asc">Lowest Rated</option>
-                            <option value="name_asc">Name (A-Z)</option>
-                            <option value="reviews_desc">Most Reviewed</option>
-                        </select>
+                            <select
+                                className="bg-background border border-input rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#7b1113]/20 w-full disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/50"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                disabled={!searchValue && !campus}
+                            >
+                                <option value="rating_desc">Highest Rated</option>
+                                <option value="rating_asc">Lowest Rated</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="reviews_desc">Most Reviewed</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
