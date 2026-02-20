@@ -61,6 +61,18 @@ export function ReviewDetailsDialog({ isOpen, onClose, review, onUpvote }: Revie
     if (!review) return null;
 
     const isCampus = review.rating_type === 'campus';
+
+    const CAMPUS_NAMES: Record<string, string> = {
+        'diliman': 'UP Diliman',
+        'los-banos': 'UP Los Baños',
+        'manila': 'UP Manila',
+        'visayas': 'UP Visayas',
+        'baguio': 'UP Baguio',
+        'cebu': 'UP Cebu',
+        'mindanao': 'UP Mindanao',
+        'ou': 'UP Open University'
+    };
+
     const dateFormatted = review.created_at
         ? new Date(review.created_at).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
         : 'Recent';
@@ -101,13 +113,13 @@ export function ReviewDetailsDialog({ isOpen, onClose, review, onUpvote }: Revie
                                 </Badge>
                                 {review.campus && (
                                     <Badge variant="outline" className="text-white/80 border-white/20">
-                                        {review.campus === 'diliman' ? 'UP Diliman' : review.campus}
+                                        {CAMPUS_NAMES[review.campus] || review.campus}
                                     </Badge>
                                 )}
                             </div>
                             <DialogTitle className="text-3xl font-playfair font-bold tracking-tight text-white leading-tight">
                                 {isCampus
-                                    ? (review.campus === 'diliman' ? 'UP Diliman' : review.campus)
+                                    ? (review.campus ? (CAMPUS_NAMES[review.campus] || review.campus) : 'University Campus')
                                     : review.professors?.name}
                             </DialogTitle>
                             {!isCampus && review.courses && (

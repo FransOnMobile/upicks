@@ -18,6 +18,17 @@ import { getAvatarColor } from "@/lib/avatar-utils";
 export function RatingCard({ rating, onClick, onUserClick }: RatingCardProps) {
     const isCampusRating = rating.rating_type === 'campus' || !rating.professors;
 
+    const CAMPUS_NAMES: Record<string, string> = {
+        'diliman': 'UP Diliman',
+        'los-banos': 'UP Los Baños',
+        'manila': 'UP Manila',
+        'visayas': 'UP Visayas',
+        'baguio': 'UP Baguio',
+        'cebu': 'UP Cebu',
+        'mindanao': 'UP Mindanao',
+        'ou': 'UP Open University'
+    };
+
     // Format date
     const dateFormatted = rating.created_at
         ? new Date(rating.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -53,20 +64,19 @@ export function RatingCard({ rating, onClick, onUserClick }: RatingCardProps) {
                             )}
                             {rating.campus && (
                                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                                    {rating.campus === 'diliman' ? 'UP Diliman' :
-                                        rating.campus === 'mindanao' ? 'UP Mindanao' : rating.campus}
+                                    {CAMPUS_NAMES[rating.campus] || rating.campus}
                                 </span>
                             )}
                             {rating.professors?.campus && !rating.campus && (
                                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                                    {rating.professors.campus === 'diliman' ? 'UP Diliman' : 'UP Mindanao'}
+                                    {CAMPUS_NAMES[rating.professors.campus] || rating.professors.campus}
                                 </span>
                             )}
                         </div>
 
                         <h3 className="font-bold text-lg tracking-tight text-foreground leading-tight">
                             {isCampusRating
-                                ? (rating.campus === 'diliman' ? 'UP Diliman' : rating.campus === 'mindanao' ? 'UP Mindanao' : 'University Campus')
+                                ? (rating.campus ? (CAMPUS_NAMES[rating.campus] || 'University Campus') : 'University Campus')
                                 : rating.professors?.name || 'Unknown Professor'}
                         </h3>
 
