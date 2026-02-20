@@ -140,7 +140,7 @@ function RatePageContent() {
         }
 
         if (departmentId) {
-            filtered = filtered.filter(p => p.departmentId === departmentId);
+            filtered = filtered.filter(p => String(p.departmentId) === departmentId);
         }
 
         // Apply sorting based on user selection or default to rating desc
