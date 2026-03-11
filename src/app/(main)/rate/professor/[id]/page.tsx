@@ -2,6 +2,9 @@ import { createClient } from "@/utils/supabase/server";
 import { Metadata } from "next";
 import ProfessorDetailsClient from "./client-page";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface Props {
     params: Promise<{ id: string }>;
 }
