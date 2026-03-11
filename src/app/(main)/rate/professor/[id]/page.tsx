@@ -50,7 +50,7 @@ export default async function ProfessorDetailsPage({ params }: Props) {
                 rating_tag_associations (
                     rating_tags (name)
                 ),
-                users (nickname),
+                users!user_id (nickname),
                 user_id,
                 rating_replies(count)
             `)

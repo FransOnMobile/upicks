@@ -85,7 +85,7 @@ export async function getReplies(
             content,
             created_at,
             is_anonymous,
-            users:user_id (nickname)
+            users!user_id (nickname)
         `)
         .eq('rating_id', ratingId)
         .order('created_at', { ascending: true });

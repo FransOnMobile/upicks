@@ -271,7 +271,7 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
                     campus_rating_tag_associations (
                         campus_tags (name)
                     ),
-                    users (nickname),
+                    users!user_id (nickname),
                     user_id,
                     campus_rating_replies(count)
                 `)

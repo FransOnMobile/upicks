@@ -22,7 +22,7 @@ export function CommunityFeed() {
                     helpful_count,
                     professors (name, department_id, campus),
                     courses (code, name),
-                    users (year_level, degree_program)
+                    users!user_id (year_level, degree_program)
                 `)
                 .order("created_at", { ascending: false })
                 .limit(20);
