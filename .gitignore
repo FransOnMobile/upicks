@@ -52,3 +52,10 @@ node_modules/
 .github/
 **/tempobook/**
 node_modules
+
+# california agentic
+AGENTS.md
+QWEN.md
+.qwen/
+agent/
+git/
