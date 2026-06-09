@@ -65,7 +65,7 @@ function RatePageContent() {
 
                 // Fetch All Ratings (for client-side aggregation)
                 const { data: ratings, error: ratingsError } = await supabase
-                    .from('ratings')
+                    .from('public_ratings')
                     .select('*, rating_tag_associations(rating_tags(name))');
 
                 if (ratingsError) throw ratingsError;

@@ -46,7 +46,7 @@ export default async function ProfessorDetailsPage({ params }: Props) {
     // Parallel Data Fetching
     const [profResult, ratingsResult, tagsResult, userVotesResult, userRatingsResult] = await Promise.all([
         supabase.from('professors').select('*, departments:department_id (name)').eq('id', id).single(),
-        supabase.from('ratings')
+        supabase.from('public_ratings')
             .select(`
                 *,
                 courses (code, name),
@@ -61,7 +61,7 @@ export default async function ProfessorDetailsPage({ params }: Props) {
             .order('created_at', { ascending: false }),
         supabase.from('rating_tags').select('*'),
         user ? supabase.from('rating_votes').select('rating_id').eq('user_id', user.id) : Promise.resolve({ data: [] }),
-        user ? supabase.from('ratings').select('course_id').eq('professor_id', id).eq('user_id', user.id) : Promise.resolve({ data: [] })
+        user ? supabase.from('public_ratings').select('course_id').eq('professor_id', id).eq('user_id', user.id) : Promise.resolve({ data: [] })
     ]);
 
     if (!profResult.data) {

@@ -50,7 +50,7 @@ function HomeContent() {
 
       // Fallback: count unique users from ratings (publicly readable)
       const { count } = await supabase
-        .from('ratings')
+        .from('public_ratings')
         .select('user_id', { count: 'exact', head: true });
       if (count !== null && count > 0) {
         setUserCount(count);

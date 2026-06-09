@@ -198,7 +198,7 @@ export default function ModeratorDashboard() {
         let campusRatings: any[] = [];
 
         if (profRatingIds.length > 0) {
-            const { data } = await supabase.from('ratings').select('id, review_text').in('id', profRatingIds);
+            const { data } = await supabase.from('public_ratings').select('id, review_text').in('id', profRatingIds);
             if (data) profRatings = data;
         }
 

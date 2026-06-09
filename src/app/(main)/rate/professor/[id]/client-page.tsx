@@ -530,13 +530,13 @@ function ReviewerProfileDialog({ isOpen, onClose, userId, nickname }: { isOpen: 
 
                 // 1. Professor Ratings
                 const { count: profCount, error: profError } = await supabase
-                    .from('ratings')
+                    .from('public_ratings')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', userId)
                     .eq('is_anonymous', false);
 
                 const { data: profHelpful } = await supabase
-                    .from('ratings')
+                    .from('public_ratings')
                     .select('helpful_count')
                     .eq('user_id', userId)
                     .eq('is_anonymous', false);

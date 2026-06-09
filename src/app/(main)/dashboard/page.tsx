@@ -36,7 +36,7 @@ export default async function Dashboard() {
   // Fetch my professor ratings (Fetch ALL so client can paginate/slice)
   // Limited to 50 for performance, maybe? Or allow all.
   const { data: myProfRatings } = await supabase
-    .from("ratings")
+    .from("public_ratings")
     .select(`
         id,
         overall_rating,

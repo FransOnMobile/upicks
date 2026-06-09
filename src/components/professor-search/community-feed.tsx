@@ -13,7 +13,7 @@ export function CommunityFeed() {
     useEffect(() => {
         const fetchRatings = async () => {
             const { data } = await supabase
-                .from("ratings")
+                .from("public_ratings")
                 .select(`
                     id,
                     overall_rating,
