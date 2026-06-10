@@ -646,12 +646,7 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
                 isHighlighted && "ring-4 ring-[#fbbf24] bg-[#fbbf24]/5"
             )}
         >
-            {/* Gradient accent */}
-            <div className={`absolute top-0 left-0 w-1 h-full transition-all duration-500
-                ${review.overall_rating >= 4 ? 'bg-green-500' : review.overall_rating >= 2.5 ? 'bg-yellow-500' : 'bg-red-500'}
-                opacity-50 group-hover:opacity-100`}></div>
-
-            <div className="flex justify-between items-start mb-4 pl-3">
+            <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                     <div
                         onClick={handleProfileClick}
@@ -706,7 +701,7 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg border border-border/50 pl-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg border border-border/50">
                 <div className="flex flex-col gap-1 text-center border-r border-border/50 last:border-0">
                     <span className="uppercase tracking-widest text-[10px]">Teaching</span>
                     <span className={`font-bold text-sm ${getRatingColor(review.teaching_quality)}`}>{review.teaching_quality}</span>
@@ -726,12 +721,12 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
             </div>
 
             {/* Text content */}
-            <p className="text-foreground/90 leading-relaxed text-sm md:text-base mb-4 pl-3 whitespace-pre-wrap">
+            <p className="text-foreground/90 leading-relaxed text-sm md:text-base mb-4 whitespace-pre-wrap">
                 {review.reviewText}
             </p>
 
             {/* Metadata & Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border/50 pl-3">
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border/50">
                 <div className="flex gap-2">
                     <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
                         Attendance: {review.attendance}
