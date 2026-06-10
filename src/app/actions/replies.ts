@@ -74,10 +74,10 @@ export async function getReplies(
 ): Promise<{ success: boolean; replies: Reply[]; error?: string }> {
     const supabase = await createClient();
     
-    const tableName = type === 'professor' ? 'rating_replies' : 'campus_rating_replies';
+    const viewName = type === 'professor' ? 'public_rating_replies' : 'public_campus_rating_replies';
     
     const { data, error } = await supabase
-        .from(tableName)
+        .from(viewName)
         .select(`
             id,
             rating_id,
@@ -85,7 +85,7 @@ export async function getReplies(
             content,
             created_at,
             is_anonymous,
-            users!user_id (nickname)
+            author_display_name
         `)
         .eq('rating_id', ratingId)
         .order('created_at', { ascending: true });
@@ -103,7 +103,7 @@ export async function getReplies(
         content: reply.content,
         created_at: reply.created_at,
         is_anonymous: reply.is_anonymous,
-        user_nickname: reply.is_anonymous ? 'Anonymous' : (reply.users?.nickname || 'Unknown User')
+        user_nickname: reply.author_display_name
     }));
     
     return { success: true, replies };
@@ -151,10 +151,10 @@ export async function getReplyCount(
 ): Promise<number> {
     const supabase = await createClient();
     
-    const tableName = type === 'professor' ? 'rating_replies' : 'campus_rating_replies';
+    const viewName = type === 'professor' ? 'public_rating_replies' : 'public_campus_rating_replies';
     
     const { count, error } = await supabase
-        .from(tableName)
+        .from(viewName)
         .select('*', { count: 'exact', head: true })
         .eq('rating_id', ratingId);
     
