@@ -265,14 +265,12 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
 
             // Fetch Ratings with Tags
             const { data: ratingsData, error } = await supabase
-                .from('campus_ratings')
+                .from('public_campus_ratings')
                 .select(`
                     *,
                     campus_rating_tag_associations (
                         campus_tags (name)
                     ),
-                    users!user_id (nickname),
-                    user_id,
                     campus_rating_replies(count)
                 `)
                 .eq('campus_id', campusId)
@@ -283,8 +281,8 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
                 const formattedReviews = ratingsData.map((r: any) => ({
                     ...r,
                     tags: r.campus_rating_tag_associations?.map((t: any) => t.campus_tags?.name).filter(Boolean) || [],
-                    nickname: r.users?.nickname || null,
-                    displayName: r.is_anonymous ? 'Anonymous Student' : (r.users?.nickname || 'Verified Student'),
+                    nickname: r.author_display_name,
+                    displayName: r.author_display_name,
                     reply_count: r.campus_rating_replies?.[0]?.count || 0
                 }));
 
@@ -617,13 +615,13 @@ function ReviewerProfileDialog({ isOpen, onClose, userId, nickname }: { isOpen: 
 
                 // 2. Campus Ratings
                 const { count: campusCount, error: campusError } = await supabase
-                    .from('campus_ratings')
+                    .from('public_campus_ratings')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', userId)
                     .eq('is_anonymous', false);
 
                 const { data: campusHelpful } = await supabase
-                    .from('campus_ratings')
+                    .from('public_campus_ratings')
                     .select('helpful_count')
                     .eq('user_id', userId)
                     .eq('is_anonymous', false);

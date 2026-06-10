@@ -20,10 +20,10 @@ export async function submitCampusRating(formData: any) {
     // If authenticated, check user_id. If anon, check IP hash.
     if (user) {
         const { data: existing } = await supabase
-            .from('campus_ratings')
+            .from('public_campus_ratings')
             .select('created_at')
             .eq('campus_id', campusId)
-            .eq('user_id', user.id)
+            .eq('is_owner', true)
             .order('created_at', { ascending: false })
             .limit(1)
             .single();

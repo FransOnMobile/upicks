@@ -24,7 +24,7 @@ export default function CampusDirectoryPage() {
     useEffect(() => {
         const fetchStats = async () => {
             const { count } = await supabase
-                .from('campus_ratings')
+                .from('public_campus_ratings')
                 .select('*', { count: 'exact', head: true });
 
             if (count !== null) setTotalRatings(count);

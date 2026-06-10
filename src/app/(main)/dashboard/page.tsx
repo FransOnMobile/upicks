@@ -49,9 +49,9 @@ export default async function Dashboard() {
 
   // Fetch my campus ratings
   const { data: myCampusRatings } = await supabase
-    .from("campus_ratings")
+    .from("public_campus_ratings")
     .select('*')
-    .eq('user_id', user.id)
+    .eq('is_owner', true)
     .order('created_at', { ascending: false });
 
   return (

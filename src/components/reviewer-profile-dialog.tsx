@@ -45,13 +45,13 @@ export function ReviewerProfileDialog({ isOpen, onClose, userId, nickname }: Rev
 
                 // 2. Campus Ratings
                 const { count: campusCount } = await supabase
-                    .from('campus_ratings')
+                    .from('public_campus_ratings')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', userId)
                     .eq('is_anonymous', false);
 
                 const { data: campusHelpful } = await supabase
-                    .from('campus_ratings')
+                    .from('public_campus_ratings')
                     .select('helpful_count')
                     .eq('user_id', userId)
                     .eq('is_anonymous', false);

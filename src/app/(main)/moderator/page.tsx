@@ -203,7 +203,7 @@ export default function ModeratorDashboard() {
         }
 
         if (campusRatingIds.length > 0) {
-            const { data } = await supabase.from('campus_ratings').select('id, review_text').in('id', campusRatingIds);
+            const { data } = await supabase.from('public_campus_ratings').select('id, review_text').in('id', campusRatingIds);
             if (data) campusRatings = data;
         }
 
