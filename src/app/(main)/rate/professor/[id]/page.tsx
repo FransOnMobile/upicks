@@ -53,8 +53,6 @@ export default async function ProfessorDetailsPage({ params }: Props) {
                 rating_tag_associations (
                     rating_tags (name)
                 ),
-                users!user_id (nickname),
-                user_id,
                 rating_replies(count)
             `)
             .eq('professor_id', id)
@@ -92,9 +90,9 @@ export default async function ProfessorDetailsPage({ params }: Props) {
         grade: r.grade_received,
         attendance: r.mandatory_attendance ? 'Mandatory' : 'Optional',
         would_take_again: r.would_take_again,
-        nickname: r.users?.nickname || null,
+        nickname: r.author_display_name,
         user_id: r.user_id,
-        displayName: r.is_anonymous ? 'Anonymous Student' : (r.users?.nickname || 'Verified Student'),
+        displayName: r.author_display_name,
         reply_count: r.rating_replies?.[0]?.count || 0,
         textbook_used: r.textbook_used
     }));
