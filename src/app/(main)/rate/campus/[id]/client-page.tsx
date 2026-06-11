@@ -720,12 +720,8 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
 
     return (
         <div className="group bg-card hover:bg-muted/30 border border-border rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden">
-            {/* Gradient accent */}
-            <div className={`absolute top-0 left-0 w-1 h-full transition-all duration-500
-                ${review.overall_rating >= 4 ? 'bg-green-500' : review.overall_rating >= 2.5 ? 'bg-yellow-500' : 'bg-red-500'}
-                opacity-50 group-hover:opacity-100`}></div>
 
-            <div className="flex justify-between items-start mb-4 pl-3">
+            <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                     <div
                         onClick={handleProfileClick}
@@ -768,7 +764,7 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
                 )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg border border-border/50 pl-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg border border-border/50">
                 <div className="flex flex-col gap-1 text-center border-r border-border/50 last:border-0">
                     <span className="uppercase tracking-widest text-[10px]">Facilities</span>
                     <span className={`font-bold text-sm ${getRatingColor(review.facilities_rating)}`}>{review.facilities_rating}</span>
@@ -787,12 +783,12 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
                 </div>
             </div>
 
-            <p className="text-foreground/90 leading-relaxed text-sm md:text-base mb-4 whitespace-pre-wrap pl-3">
+            <p className="text-foreground/90 leading-relaxed text-sm md:text-base mb-4 whitespace-pre-wrap">
                 {review.review_text || <span className="text-muted-foreground italic">No written review provided.</span>}
             </p>
 
             {/* Mobile tags show at bottom */}
-            <div className="sm:hidden flex flex-wrap gap-2 pl-3 mb-4">
+            <div className="sm:hidden flex flex-wrap gap-2 mb-4">
                 {review.tags && review.tags.map((tag: string) => (
                     <Badge key={tag} variant="secondary" className="text-[10px]">
                         {tag}
@@ -800,7 +796,7 @@ function ReviewCard({ review, onUpvote, onReport, isHelpful, helpfulCount, onUse
                 ))}
             </div>
 
-            <div className="flex items-center gap-4 pt-4 border-t border-border/50 pl-3">
+            <div className="flex items-center gap-4 pt-4 border-t border-border/50">
                 <button
                     onClick={() => onUpvote(review.id)}
                     className={`flex items-center gap-2 text-sm transition-colors ${isHelpful
