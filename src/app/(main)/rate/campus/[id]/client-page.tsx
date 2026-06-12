@@ -271,7 +271,7 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
                     campus_rating_tag_associations (
                         campus_tags (name)
                     ),
-                    campus_rating_replies(count)
+                    public_campus_rating_replies(count)
                 `)
                 .eq('campus_id', campusId)
                 .order('created_at', { ascending: false });
@@ -283,7 +283,7 @@ export default function CampusDetailsClient({ campusId }: CampusDetailsClientPro
                     tags: r.campus_rating_tag_associations?.map((t: any) => t.campus_tags?.name).filter(Boolean) || [],
                     nickname: r.author_display_name,
                     displayName: r.author_display_name,
-                    reply_count: r.campus_rating_replies?.[0]?.count || 0
+                    reply_count: r.public_campus_rating_replies?.[0]?.count || 0
                 }));
 
                 setReviews(formattedReviews);
