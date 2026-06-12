@@ -53,7 +53,7 @@ export default async function ProfessorDetailsPage({ params }: Props) {
                 rating_tag_associations (
                     rating_tags (name)
                 ),
-                rating_replies(count)
+                public_rating_replies(count)
             `)
             .eq('professor_id', id)
             .order('created_at', { ascending: false }),
@@ -93,7 +93,7 @@ export default async function ProfessorDetailsPage({ params }: Props) {
         nickname: r.author_display_name,
         user_id: r.user_id,
         displayName: r.author_display_name,
-        reply_count: r.rating_replies?.[0]?.count || 0,
+        reply_count: r.public_rating_replies?.[0]?.count || 0,
         textbook_used: r.textbook_used
     }));
 
